@@ -216,6 +216,10 @@ let APP = {
   showEditRepModal: false,
   editingRep: null,  // profile object being edited
   editRepError: '',
+  showChangePassModal: false,
+  changePassUserId: null,
+  changePassUserName: '',
+  changePassError: '',
   error: '',
   forgotSent: false,
   resetSuccess: false,
@@ -898,6 +902,7 @@ function renderAdmin(){
               <td>
                 <div style="display:flex;gap:5px;align-items:center;">
                   <button onclick="editRep('${r.id}')" class="btn-ghost" style="font-size:11px;padding:5px 10px;white-space:nowrap;">✏️ ערוך</button>
+                  <button onclick="showChangePass('${r.id}','${r.full_name.replace(/'/g,'\\'')}')" class="btn-ghost" style="font-size:11px;padding:5px 10px;white-space:nowrap;border-color:rgba(0,245,255,0.25);color:var(--neon);">🔑</button>
                   <button onclick="deleteRep('${r.id}','${r.full_name}')" class="btn-danger" style="font-size:11px;padding:5px 10px;white-space:nowrap;">🗑️</button>
                 </div>
               </td>
@@ -927,6 +932,7 @@ function renderAdmin(){
           </div>
           <div style="display:flex;gap:5px;">
             <button onclick="editRep('${m.id}')" class="btn-ghost" style="font-size:11px;padding:5px 10px;">✏️ ערוך</button>
+            <button onclick="showChangePass('${m.id}','${m.full_name.replace(/'/g,'\\'')}')" class="btn-ghost" style="font-size:11px;padding:5px 10px;border-color:rgba(0,245,255,0.25);color:var(--neon);">🔑</button>
             <button onclick="deleteRep('${m.id}','${m.full_name}')" class="btn-danger" style="font-size:11px;padding:5px 10px;">🗑️</button>
           </div>
         </div>`;
@@ -938,6 +944,8 @@ function renderAdmin(){
   ${APP.showAddRepModal?renderAddRepModal():''}
   <!-- EDIT REP MODAL -->
   ${APP.showEditRepModal&&APP.editingRep?renderEditRepModal():''}
+  <!-- CHANGE PASSWORD MODAL -->
+  ${APP.showChangePassModal?renderChangePassModal():''}
   </div>`;
 }
 
@@ -948,6 +956,33 @@ function renderCancelModal(){
       <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:12px;line-height:1.4;">לא נורא!</div>
       <div style="font-size:14px;color:var(--text-sub);line-height:1.7;margin-bottom:24px;">"סבתא תמיד אמרה — אם הלך אחד, יבוא אחר יותר נחמד" 😊<br><br>ביטולים הם חלק מהמשחק. ממשיכים קדימה ומוכרים!</div>
       <button onclick="closeCancelModal()" class="btn-primary" style="width:100%;">💪 קדימה!</button>
+    </div>
+  </div>`;
+}
+
+function renderChangePassModal(){
+  const name=APP.changePassUserName;
+  return`<div class="modal-overlay" onclick="closeChangePass(event)">
+    <div class="modal-box" onclick="event.stopPropagation()" style="max-width:380px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-size:15px;font-weight:800;background:linear-gradient(135deg,#f1f5f9,#00f5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🔑 שנה סיסמה — ${name}</div>
+        <button onclick="closeChangePass()" class="btn-ghost" style="padding:6px 12px;font-size:12px;">✕</button>
+      </div>
+      ${APP.changePassError?`<div class="error-msg" style="margin-bottom:14px;">${APP.changePassError}</div>`:''}
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <div class="label" style="margin-bottom:5px;">סיסמה חדשה</div>
+          <input id="cp-pass" type="password" placeholder="לפחות 6 תווים" style="font-size:15px;"/>
+        </div>
+        <div>
+          <div class="label" style="margin-bottom:5px;">אישור סיסמה</div>
+          <input id="cp-confirm" type="password" placeholder="חזור על הסיסמה" style="font-size:15px;"/>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button onclick="doChangePassword()" class="btn-neon" style="flex:1;" id="cp-btn">💾 שנה סיסמה</button>
+          <button onclick="closeChangePass()" class="btn-ghost">ביטול</button>
+        </div>
+      </div>
     </div>
   </div>`;
 }
@@ -1540,8 +1575,8 @@ window.doAddRep=async()=>{
       profileData.settings={targetBonus:bonus,monthTarget:mt,dailyTarget:dt,tiers};
     }
 
-    // Try direct upsert first, fallback to RPC
-    const {error:upsertErr}=await sb.from('profiles').upsert(profileData);
+    // Use service-role client to bypass RLS, fallback to RPC
+    const {error:upsertErr}=await sbAdmin.from('profiles').upsert(profileData);
     if(upsertErr){
       const {error:rpcErr}=await sb.rpc('admin_upsert_profile',{
         p_id:profileData.id,
@@ -1565,6 +1600,36 @@ window.doAddRep=async()=>{
 
   }catch(e){
     showErr('שגיאה לא צפויה: '+e.message);
+  }
+};
+
+window.showChangePass=(userId,name)=>{
+  APP.showChangePassModal=true;
+  APP.changePassUserId=userId;
+  APP.changePassUserName=name;
+  APP.changePassError='';
+  render();
+};
+window.closeChangePass=(e)=>{
+  if(!e||e.target===e.currentTarget){APP.showChangePassModal=false;APP.changePassUserId=null;APP.changePassError='';render();}
+};
+window.doChangePassword=async()=>{
+  const pass=document.getElementById('cp-pass').value;
+  const confirm=document.getElementById('cp-confirm').value;
+  if(!pass||pass.length<6){APP.changePassError='סיסמה חייבת להיות לפחות 6 תווים';render();return;}
+  if(pass!==confirm){APP.changePassError='הסיסמאות אינן תואמות';render();return;}
+  const btn=document.getElementById('cp-btn');
+  if(btn){btn.textContent='משנה...';btn.disabled=true;}
+  try{
+    const {error}=await sbAdmin.auth.admin.updateUserById(APP.changePassUserId,{password:pass});
+    if(error){APP.changePassError='שגיאה: '+error.message;if(btn){btn.textContent='💾 שנה סיסמה';btn.disabled=false;}render();return;}
+    APP.showChangePassModal=false;APP.changePassUserId=null;APP.changePassError='';
+    alert('✅ הסיסמה שונתה בהצלחה!');
+    render();
+  }catch(e){
+    APP.changePassError='שגיאה לא צפויה: '+e.message;
+    if(btn){btn.textContent='💾 שנה סיסמה';btn.disabled=false;}
+    render();
   }
 };
 
