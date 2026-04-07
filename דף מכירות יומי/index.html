@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>נובה — מרכז מכירות</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0d0d0d;--surface:rgba(20,20,20,0.92);--surface2:rgba(26,26,26,0.96);
+  --border:rgba(255,255,255,0.07);--border-hi:rgba(255,255,255,0.13);
+  --accent:#7c7ff5;--accent2:#a5b4fc;
+  --neon:#00f5ff;--neon2:rgba(0,245,255,0.12);
+  --purple:#bf5af2;
+  --cyan:#38bdf8;--green:#4ade80;--gold:#fde68a;--gold2:#fbbf24;
+  --silver:#e2e8f0;--silver2:#cbd5e1;--red:#f87171;
+  --text:#f1f5f9;--text-sub:#c4cdd8;--text-dim:rgba(255,255,255,0.48);
+  --font:'Heebo',sans-serif;--radius:18px;--radius-sm:11px;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);direction:rtl;-webkit-font-smoothing:antialiased;}
+
+/* ── ANIMATED BACKGROUND ── */
+.bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.bg-mesh::before{
+  content:'';position:absolute;width:120%;height:120%;top:-10%;left:-10%;
+  background:
+    radial-gradient(ellipse 800px 600px at 80% 10%, rgba(99,102,241,0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 500px at 10% 80%, rgba(0,245,255,0.025) 0%, transparent 60%),
+    radial-gradient(ellipse 500px 400px at 50% 50%, rgba(191,90,242,0.025) 0%, transparent 60%);
+  animation:mesh-drift 22s ease-in-out infinite alternate;
+}
+@keyframes mesh-drift{0%{transform:translate(0,0) scale(1);}100%{transform:translate(-2%,2%) scale(1.04);}}
+.grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(124,127,245,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(124,127,245,0.018) 1px,transparent 1px);
+  background-size:52px 52px;}
+
+/* ── SHARED ── */
+#root{position:relative;z-index:1;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;backdrop-filter:blur(12px);}
+.card-luxury{background:linear-gradient(145deg,rgba(22,22,22,0.97),rgba(14,14,14,0.98));border:1px solid var(--border-hi);border-radius:var(--radius);box-shadow:0 8px 40px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.07);backdrop-filter:blur(16px);}
+.card-neon{background:var(--surface);border-radius:var(--radius);padding:22px;backdrop-filter:blur(12px);position:relative;}
+.card-neon::before{content:'';position:absolute;inset:0;border-radius:var(--radius);padding:1px;background:linear-gradient(135deg,rgba(0,245,255,0.3),rgba(124,127,245,0.2),rgba(191,90,242,0.3));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);}
+.label-accent{color:rgba(124,127,245,0.75);}
+.label-cyan{color:rgba(56,189,248,0.7);}
+.label-green{color:rgba(74,222,128,0.7);}
+.label-gold{color:rgba(251,191,36,0.75);}
+.label-silver{color:rgba(203,213,225,0.58);}
+.label-red{color:rgba(248,113,113,0.75);}
+.label-neon{color:rgba(0,245,255,0.8);}
+.num-hero{font-size:clamp(38px,6vw,62px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.03em;}
+.num-xl{font-size:clamp(26px,4vw,42px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums;}
+.num-lg{font-size:26px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;}
+.num-md{font-size:21px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+button{cursor:pointer;font-family:var(--font);border:none;transition:all .18s cubic-bezier(.4,0,.2,1);}
+button:active{transform:scale(0.96);}
+.btn-primary{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;padding:12px 24px;border-radius:var(--radius-sm);font-weight:800;font-size:14px;box-shadow:0 4px 20px rgba(99,102,241,0.4),inset 0 1px 0 rgba(255,255,255,0.15);}
+.btn-primary:hover{box-shadow:0 6px 32px rgba(99,102,241,0.65),0 0 0 1px rgba(99,102,241,0.4);transform:translateY(-1px);}
+.btn-neon{background:linear-gradient(135deg,rgba(0,245,255,0.1),rgba(0,245,255,0.05));border:1px solid rgba(0,245,255,0.35);color:var(--neon);padding:10px 20px;border-radius:var(--radius-sm);font-weight:700;font-size:13px;box-shadow:0 0 16px rgba(0,245,255,0.08);}
+.btn-neon:hover{box-shadow:0 0 28px rgba(0,245,255,0.3),0 0 0 1px rgba(0,245,255,0.5);background:rgba(0,245,255,0.12);}
+.btn-ghost{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-sub);padding:8px 16px;border-radius:var(--radius-sm);font-weight:600;font-size:13px;}
+.btn-ghost:hover{background:rgba(255,255,255,0.09);color:var(--text);border-color:rgba(255,255,255,0.18);}
+.btn-update{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;padding:13px 22px;border-radius:var(--radius-sm);font-weight:800;font-size:15px;width:100%;box-shadow:0 4px 24px rgba(99,102,241,0.4),inset 0 1px 0 rgba(255,255,255,0.15);}
+.btn-update:hover{box-shadow:0 6px 36px rgba(99,102,241,0.6),0 0 0 1px rgba(99,102,241,0.4);transform:translateY(-1px);}
+.btn-danger{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.25);color:var(--red);padding:9px 18px;border-radius:var(--radius-sm);font-weight:700;font-size:13px;}
+.btn-danger:hover{background:rgba(248,113,113,0.18);box-shadow:0 0 16px rgba(248,113,113,0.2);}
+.btn-link{background:none;border:none;color:var(--accent2);font-size:12px;font-weight:600;padding:4px 8px;text-decoration:underline;text-underline-offset:3px;opacity:0.8;cursor:pointer;}
+.btn-link:hover{opacity:1;color:var(--neon);}
+input{background:rgba(22,22,22,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--text);padding:12px 14px;font-size:15px;font-family:var(--font);font-weight:600;outline:none;width:100%;transition:border-color .2s,box-shadow .2s;backdrop-filter:blur(4px);}
+input:focus{border-color:rgba(0,245,255,0.45);box-shadow:0 0 0 3px rgba(0,245,255,0.08),0 0 20px rgba(0,245,255,0.04);}
+input::placeholder{color:var(--text-dim);font-weight:400;}
+.progress-track{height:7px;background:rgba(255,255,255,0.07);border-radius:999px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:999px;transition:width .9s cubic-bezier(.4,0,.2,1);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:10px;font-weight:700;}
+.badge-green{background:rgba(74,222,128,0.1);color:var(--green);border:1px solid rgba(74,222,128,0.22);}
+.badge-gold{background:rgba(251,191,36,0.1);color:var(--gold2);border:1px solid rgba(251,191,36,0.22);}
+.badge-accent{background:rgba(124,127,245,0.12);color:var(--accent2);border:1px solid rgba(124,127,245,0.28);}
+.badge-silver{background:rgba(203,213,225,0.07);color:var(--silver2);border:1px solid rgba(203,213,225,0.18);}
+.badge-red{background:rgba(248,113,113,0.1);color:var(--red);border:1px solid rgba(248,113,113,0.22);}
+.badge-cyan{background:rgba(56,189,248,0.1);color:var(--cyan);border:1px solid rgba(56,189,248,0.22);}
+.badge-neon{background:rgba(0,245,255,0.08);color:var(--neon);border:1px solid rgba(0,245,255,0.25);}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.quick-btn{background:rgba(18,22,45,0.7);border:1px solid rgba(124,127,245,0.2);border-radius:var(--radius-sm);color:var(--text-sub);padding:10px 4px;font-size:12px;font-weight:800;text-align:center;transition:all .18s;}
+.quick-btn:hover{background:rgba(0,245,255,0.08);border-color:rgba(0,245,255,0.4);color:var(--neon);box-shadow:0 0 16px rgba(0,245,255,0.12);transform:translateY(-2px);}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:17px;display:flex;flex-direction:column;gap:6px;transition:border-color .2s,box-shadow .2s;backdrop-filter:blur(8px);}
+.stat-card:hover{border-color:rgba(0,245,255,0.2);box-shadow:0 0 20px rgba(0,245,255,0.05);}
+.update-box{background:linear-gradient(145deg,rgba(13,16,35,0.95),rgba(8,10,24,0.95));border:1px solid rgba(124,127,245,0.2);border-radius:20px;padding:22px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.04);}
+.update-box::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,245,255,0.4),rgba(124,127,245,0.4),transparent);}
+.tier-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;border:1px solid transparent;transition:all .2s;}
+.tier-row.active{background:rgba(74,222,128,0.06);border-color:rgba(74,222,128,0.2);box-shadow:0 0 12px rgba(74,222,128,0.05);}
+.tier-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.modal-overlay{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.85);backdrop-filter:blur(16px);display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-box{background:rgba(16,16,16,0.98);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:26px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,0.85),0 0 0 1px rgba(0,245,255,0.06);}
+@media(max-width:600px){.two-col{grid-template-columns:1fr !important;}.four-col{grid-template-columns:1fr 1fr !important;}}
+
+/* ── ANIMATIONS ── */
+@keyframes confetti-fall{0%{transform:translateY(-10px) rotate(0deg);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+@keyframes money-fall{0%{transform:translateY(-20px);opacity:1;}100%{transform:translateY(105vh) rotate(360deg);opacity:0;}}
+@keyframes sale-banner{0%{opacity:0;transform:translateX(-50%) translateY(-20px) scale(0.9);}15%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.02);}85%{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-10px) scale(0.95);}}
+@keyframes star-twinkle{0%,100%{opacity:0.2;}50%{opacity:1;transform:scale(1.6);}}
+@keyframes rocket-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+@keyframes moon-pulse{0%,100%{filter:drop-shadow(0 0 14px rgba(210,230,255,0.55));}50%{filter:drop-shadow(0 0 40px rgba(210,230,255,1)) drop-shadow(0 0 80px rgba(180,210,255,0.65));}}
+@keyframes atmo-shimmer{0%,100%{opacity:0.55;}50%{opacity:0.85;}}
+@keyframes earth-glow{0%,100%{filter:drop-shadow(0 0 18px rgba(59,130,246,0.5));}50%{filter:drop-shadow(0 0 35px rgba(59,130,246,0.8));}}
+@keyframes boost-in{0%{opacity:0;transform:translateY(8px);}100%{opacity:1;transform:translateY(0);}}
+@keyframes float-slow{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+@keyframes glow-gold{0%,100%{text-shadow:0 0 20px rgba(251,191,36,0.4);}50%{text-shadow:0 0 40px rgba(251,191,36,0.9);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fade-up{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+@keyframes pulse-border{0%,100%{border-color:rgba(0,245,255,0.15);}50%{border-color:rgba(0,245,255,0.45);}}
+.animate-boost{animation:boost-in .35s ease both;}
+.animate-fade{animation:fade-up .4s ease both;}
+
+/* ── LOGIN PAGE ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;}
+.login-halo{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(ellipse,rgba(99,102,241,0.08) 0%,rgba(0,245,255,0.04) 40%,transparent 70%);pointer-events:none;animation:float-slow 6s ease-in-out infinite;}
+.login-box{width:100%;max-width:420px;animation:fade-up .5s ease both;position:relative;z-index:1;}
+.login-logo{text-align:center;margin-bottom:32px;}
+.login-logo-icon{width:68px;height:68px;background:linear-gradient(135deg,#6366f1,#4f46e5);border-radius:22px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 8px 32px rgba(99,102,241,0.5),0 0 60px rgba(99,102,241,0.15);}
+.login-title{font-size:28px;font-weight:900;background:linear-gradient(135deg,#f1f5f9,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;}
+.login-sub{font-size:13px;color:var(--text-sub);}
+.input-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.input-label{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-dim);text-transform:uppercase;}
+.error-msg{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.22);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--red);text-align:center;}
+.success-msg{background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.22);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--green);text-align:center;}
+.loading-spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,0.2);border-top-color:var(--neon);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(8,8,8,0.94);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 1px 40px rgba(0,0,0,0.6);}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,245,255,0.2),rgba(124,127,245,0.2),transparent);pointer-events:none;}
+.topbar-brand{font-size:15px;font-weight:800;color:var(--silver);letter-spacing:-.01em;}
+.topbar-brand span{background:linear-gradient(135deg,var(--accent2),var(--neon));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.topbar-user{display:flex;align-items:center;gap:10px;}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 12px rgba(99,102,241,0.4);}
+
+/* ── DASHBOARD LAYOUT ── */
+.dash-wrap{max-width:980px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px;}
+
+/* ── ADMIN PANEL ── */
+.admin-wrap{max-width:1100px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px;}
+.rep-table{width:100%;border-collapse:collapse;}
+.rep-table th{text-align:right;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border);}
+.rep-table td{padding:14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:14px;vertical-align:middle;}
+.rep-table tr:hover td{background:rgba(0,245,255,0.015);}
+.rep-row-name{font-weight:700;color:var(--text);font-size:14px;}
+.pace-bar{height:5px;background:rgba(255,255,255,0.07);border-radius:999px;overflow:hidden;width:80px;}
+.pace-fill{height:100%;border-radius:999px;}
+
+/* ── READONLY BANNER ── */
+.readonly-banner{background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.2);border-radius:12px;padding:10px 16px;font-size:12px;color:var(--neon);display:flex;align-items:center;gap:8px;animation:pulse-border 3s ease-in-out infinite;}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<div class="grid-bg"></div>
+<div id="confetti-layer" style="position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;"></div>
+<div id="sale-banner" style="display:none;position:fixed;top:76px;left:50%;transform:translateX(-50%);z-index:9998;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;padding:14px 32px;border-radius:14px;font-size:15px;font-weight:800;box-shadow:0 8px 40px rgba(99,102,241,0.6);white-space:nowrap;border:1px solid rgba(255,255,255,0.18);">✦ עדכון נרשם! המספרים עולים 🚀</div>
+<div id="root"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// SUPABASE CONFIG
+// ════════════════════════════════════════════════════════════
+// ── EmailJS ──
+const EMAILJS_SERVICE  = 'service_vt70rzg';
+const EMAILJS_TEMPLATE = 'template_73b14ns';
+const EMAILJS_KEY      = 'JclpgS05xoh2bqaqp';
+
+const SUPABASE_URL  = 'https://utdjsfufijblooidyofe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZGpzZnVmaWpibG9vaWR5b2ZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzODk5MDUsImV4cCI6MjA5MDk2NTkwNX0.-Niqvapu9AMCinkg0rOVIlf_YSSVsD6Orc3zkOTTqL0';
+const SUPABASE_SERVICE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0ZGpzZnVmaWpibG9vaWR5b2ZlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTM4OTkwNSwiZXhwIjoyMDkwOTY1OTA1fQ.GTbA6V0qYzfTIhWg43lEW3exDZr9JYO46nMPeglAk3Q';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const sbAdmin = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE, {
+  auth:{autoRefreshToken:false,persistSession:false,storageKey:'sb-admin-auth'}
+});
+
+// ════════════════════════════════════════════════════════════
+// QUOTES
+// ════════════════════════════════════════════════════════════
+const QUOTES=[
+  {t:"כל 'לא' מקרב אותנו ל'כן' הבא.",a:"אמרת מכירות"},
+  {t:"ככל שהקרב קשה יותר, הניצחון מתוק יותר.",a:"לס בראון"},
+  {t:"אל נסתכל על השעון — נעשה כמוהו. נמשיך קדימה.",a:"סם לווינסון"},
+  {t:"הצלחה היא סכום של מאמצים קטנים שחוזרים על עצמם יום אחר יום.",a:"רוברט קוליר"},
+  {t:"ההכנסה שלנו קשורה ישירות לחשיבה שלנו, לא לכלכלה.",a:"ג'ים רון"},
+  {t:"ניצור לקוח, לא מכירה.",a:"קת'רין ברצ'טי"},
+  {t:"מעולם לא חלמנו על הצלחה. עבדנו בשבילה.",a:"אסתי לאודר"},
+  {t:"הסוד להתקדמות הוא להתחיל.",a:"מארק טוויין"},
+  {t:"אלופים נוצרים ממשהו עמוק בפנים — רצון, חלום, חזון.",a:"מוחמד עלי"},
+  {t:"אנחנו מפספסים 100% מהזריקות שאנחנו לא מנסים.",a:"וויין גרצקי"},
+  {t:"ההבדל בין הצלחה לכישלון אינו כישרון — זה רצון.",a:"וינס לומברדי"},
+];
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let APP = {
+  view: 'loading',   // loading | login | forgot | reset | dashboard | admin | manager
+  user: null,
+  profile: null,
+  salesData: null,
+  allReps: [],       // for admin: all reps; for manager: their reps
+  allManagers: [],   // for admin: list of managers
+  viewingRep: null,  // { profile, salesData } when admin/manager views a rep
+  appSettings: {},   // global settings (work days etc.)
+  quoteIdx: Math.floor(Math.random()*QUOTES.length),
+  moonGlowing: false,
+  showCancelModal: false,
+  showAddRepModal: false,
+  addRepError: '',
+  showEditRepModal: false,
+  editingRep: null,  // profile object being edited
+  editRepError: '',
+  error: '',
+  forgotSent: false,
+  resetSuccess: false,
+};
+let moonTimeout=null, quoteInterval=null;
+const fmt=n=>new Intl.NumberFormat("he-IL").format(Math.round(n||0));
+
+// ════════════════════════════════════════════════════════════
+// SUPABASE HELPERS
+// ════════════════════════════════════════════════════════════
+async function loadProfile(userId){
+  const {data}=await sb.from('profiles').select('*').eq('id',userId).single();
+  return data;
+}
+async function loadSalesData(userId){
+  const now=new Date();
+  const month=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const today=now.toISOString().slice(0,10);
+  let {data}=await sb.from('sales').select('*').eq('user_id',userId).eq('month',month).single();
+  if(!data){
+    const {data:d2}=await sb.from('sales').insert({user_id:userId,month,month_sales:0,today_sales:0,today_date:today,pb:0,streak:0}).select().single();
+    data=d2;
+  }
+  if(data && data.today_date!==today){
+    const {data:d3}=await sb.from('sales').update({today_sales:0,today_date:today}).eq('id',data.id).select().single();
+    data=d3;
+  }
+  return data;
+}
+async function saveSalesData(salesId, updates, fallback){
+  const {data}=await sb.from('sales').update(updates).eq('id',salesId).select().single();
+  // If DB returns null (RLS or no rows), keep local state with updates applied
+  return data || (fallback ? {...fallback,...updates} : null);
+}
+async function loadAllReps(){
+  const now=new Date();
+  const month=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const {data:profiles}=await sb.from('profiles').select('*').eq('role','rep').order('full_name');
+  const {data:sales}=await sb.from('sales').select('*').eq('month',month);
+  return (profiles||[]).map(p=>{
+    const s=(sales||[]).find(x=>x.user_id===p.id)||{};
+    // IMPORTANT: spread profile LAST so profile.id is never overwritten by sales.id
+    return{
+      month_sales:s.month_sales||0,
+      today_sales:s.today_sales||0,
+      streak:s.streak||0,
+      today_date:s.today_date||null,
+      pb:s.pb||0,
+      updated_at:s.updated_at||null,
+      ...p, // profile data (id, full_name, email, role, settings, manager_id) wins
+    };
+  });
+}
+async function loadAppSettings(){
+  const {data}=await sb.from('app_settings').select('*');
+  const s={};
+  (data||[]).forEach(r=>{s[r.key]=r.value;});
+  return s;
+}
+async function saveAppSetting(key,value){
+  await sb.from('app_settings').upsert({key,value:value===''||value===null?null:String(value)});
+}
+// Read-only sales load — no INSERT/UPDATE (safe for admin viewing any rep)
+async function loadSalesDataReadOnly(userId){
+  const now=new Date();
+  const month=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const {data}=await sb.from('sales').select('*').eq('user_id',userId).eq('month',month).maybeSingle();
+  return data||{month_sales:0,today_sales:0,today_date:null,pb:0,streak:0,updated_at:null};
+}
+async function loadAllManagers(){
+  const {data}=await sb.from('profiles').select('*').eq('role','manager').order('full_name');
+  return data||[];
+}
+async function loadManagerReps(managerId){
+  const now=new Date();
+  const month=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const {data:profiles}=await sb.from('profiles').select('*').eq('role','rep').eq('manager_id',managerId).order('full_name');
+  const {data:sales}=await sb.from('sales').select('*').eq('month',month);
+  return (profiles||[]).map(p=>{
+    const s=(sales||[]).find(x=>x.user_id===p.id)||{};
+    return{
+      month_sales:s.month_sales||0,
+      today_sales:s.today_sales||0,
+      streak:s.streak||0,
+      today_date:s.today_date||null,
+      pb:s.pb||0,
+      updated_at:s.updated_at||null,
+      ...p,
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════════
+async function init(){
+  APP.appSettings=await loadAppSettings();
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    await onLogin(session.user);
+  } else {
+    APP.view='login'; render();
+  }
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='PASSWORD_RECOVERY'){
+      APP.view='reset'; APP.error=''; render(); return;
+    }
+    if(session) await onLogin(session.user);
+    else { APP.view='login'; APP.user=null; APP.profile=null; APP.viewingRep=null; render(); }
+  });
+}
+async function onLogin(user){
+  APP.user=user;
+  APP.profile=await loadProfile(user.id);
+  if(!APP.profile){ APP.view='login'; APP.error='משתמש לא נמצא במערכת'; render(); return; }
+  if(APP.profile.role==='admin'){
+    const [reps,managers]=await Promise.all([loadAllReps(),loadAllManagers()]);
+    APP.allReps=reps; APP.allManagers=managers;
+    APP.view='admin';
+  } else if(APP.profile.role==='manager'){
+    APP.allReps=await loadManagerReps(user.id);
+    APP.view='manager';
+  } else {
+    APP.salesData=await loadSalesData(user.id);
+    APP.view='dashboard';
+    startQuoteRotation();
+  }
+  render();
+}
+async function doLogin(e){
+  e.preventDefault();
+  const email=document.getElementById('li-email').value.trim();
+  const pass=document.getElementById('li-pass').value;
+  APP.error=''; render();
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){ APP.error='אימייל או סיסמה שגויים'; render(); }
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  clearInterval(quoteInterval);
+  APP.view='login'; APP.user=null; APP.profile=null; APP.salesData=null; APP.viewingRep=null;
+  render();
+}
+async function doForgot(e){
+  e.preventDefault();
+  const email=document.getElementById('fp-email').value.trim();
+  if(!email){ APP.error='נא להזין כתובת אימייל'; render(); return; }
+  APP.error=''; render();
+  await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});
+  APP.forgotSent=true; render();
+}
+async function doResetPassword(e){
+  e.preventDefault();
+  const pass=document.getElementById('rp-pass').value;
+  const confirm=document.getElementById('rp-confirm').value;
+  if(pass!==confirm){ APP.error='הסיסמאות אינן תואמות'; render(); return; }
+  if(pass.length<6){ APP.error='סיסמה חייבת להיות לפחות 6 תווים'; render(); return; }
+  APP.error=''; render();
+  const {error}=await sb.auth.updateUser({password:pass});
+  if(error){ APP.error=error.message; render(); return; }
+  APP.view='login'; APP.resetSuccess=true; render();
+}
+
+// ════════════════════════════════════════════════════════════
+// SALES LOGIC
+// ════════════════════════════════════════════════════════════
+function calcComm(sales,tiers){
+  if(!sales||sales<=0||!tiers)return 0;
+  const s=[...tiers].sort((a,b)=>a.from-b.from);
+  let pct=0;for(const t of s){if(sales>t.from)pct=t.pct;}
+  return sales*(pct/100);
+}
+function getTierInfo(sales,tiers){
+  if(!tiers)return[];
+  const s=[...tiers].sort((a,b)=>a.from-b.from);
+  let ai=0;for(let i=0;i<s.length;i++){if(sales>s[i].from)ai=i;}
+  return s.map((t,i)=>({...t,isActive:i===ai&&sales>0,wouldEarn:sales*(t.pct/100)}));
+}
+function calcIsraeliWorkDays(){
+  // Israeli work week: Sun(0)-Thu(4) are work days. Fri(5) and Sat(6) are off.
+  const now=new Date();
+  const year=now.getFullYear(), month=now.getMonth();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const todayDate=now.getDate();
+  let total=0, passed=0;
+  for(let d=1;d<=daysInMonth;d++){
+    const dow=new Date(year,month,d).getDay();
+    if(dow!==5&&dow!==6){total++; if(d<=todayDate)passed++;}
+  }
+  return{total,passed,left:total-passed};
+}
+function getMonthInfo(){
+  // Use admin-set manual override if available, otherwise calc Israeli work days
+  if(APP.appSettings.work_days_total){
+    const totalDays=parseInt(APP.appSettings.work_days_total);
+    const daysLeft=APP.appSettings.work_days_left?parseInt(APP.appSettings.work_days_left):0;
+    return{totalDays,daysPassed:totalDays-daysLeft,daysLeft};
+  }
+  const {total,passed,left}=calcIsraeliWorkDays();
+  return{totalDays:total,daysPassed:passed,daysLeft:left};
+}
+
+// ════════════════════════════════════════════════════════════
+// CELEBRATION
+// ════════════════════════════════════════════════════════════
+function celebrateSale(){
+  const layer=document.getElementById("confetti-layer");
+  if(!layer)return; layer.innerHTML="";
+  const colors=["#7c7ff5","#00f5ff","#4ade80","#fde68a","#f472b6","#a5b4fc","#bf5af2"];
+  for(let i=0;i<65;i++){
+    const d=document.createElement("div");
+    const sz=4+Math.random()*8,x=Math.random()*100,del=Math.random()*.5,dur=1.5+Math.random()*1.3;
+    d.style.cssText=`position:absolute;left:${x}%;top:-20px;width:${sz}px;height:${sz}px;background:${colors[i%7]};border-radius:${i%3===0?'50%':'3px'};animation:confetti-fall ${dur}s ${del}s ease-in forwards;`;
+    layer.appendChild(d);
+  }
+  for(let i=0;i<10;i++){
+    const m=document.createElement("div");
+    const x=5+Math.random()*90,del=Math.random()*.6,dur=1.8+Math.random()*1.2,sz=20+Math.random()*14;
+    m.style.cssText=`position:absolute;left:${x}%;top:-40px;font-size:${sz}px;animation:money-fall ${dur}s ${del}s ease-in forwards;`;
+    m.textContent="💵"; layer.appendChild(m);
+  }
+  setTimeout(()=>{if(layer)layer.innerHTML="";},4200);
+  const banner=document.getElementById("sale-banner");
+  if(banner){banner.style.display="block";banner.style.animation="sale-banner 3s ease forwards";setTimeout(()=>{banner.style.display="none";banner.style.animation="";},3100);}
+  APP.moonGlowing=true; clearTimeout(moonTimeout); render();
+  moonTimeout=setTimeout(()=>{APP.moonGlowing=false;render();},3600);
+}
+function startQuoteRotation(){
+  if(quoteInterval)clearInterval(quoteInterval);
+  quoteInterval=setInterval(()=>{
+    APP.quoteIdx=(APP.quoteIdx+1)%QUOTES.length;
+    const el=document.getElementById("quote-block");
+    if(el){el.style.transition="opacity .4s";el.style.opacity="0";setTimeout(()=>render(),420);}
+  },3600000);
+}
+
+// ════════════════════════════════════════════════════════════
+// SPACE SCENE SVG
+// ════════════════════════════════════════════════════════════
+function spaceScene(pct,moonGlowing,monthTarget){
+  const W=640,H=420,prog=Math.min(pct/100,1);
+  const EX=506,EY=346,ER=72,MX=122,MY=76,MR=moonGlowing?50:42;
+  const sx=EX,sy=EY-ER-12,ex=MX,ey=MY+MR+12;
+  const rx=sx+(ex-sx)*prog,ry=sy+(ey-sy)*prog;
+  const ang=(Math.atan2(ey-sy,ex-sx)*180/Math.PI+90).toFixed(1);
+  const starData=[
+    [4,4,1.4,0.9],[11,2,0.8,0.6],[19,9,1.3,0.8],[29,3,0.9,0.7],[39,12,1.5,0.9],
+    [51,6,1.0,0.75],[63,2,0.8,0.6],[73,10,1.2,0.8],[83,4,0.9,0.7],[91,13,1.4,0.85],
+    [97,8,0.9,0.65],[15,23,1.1,0.8],[25,17,0.8,0.6],[36,26,1.3,0.85],[48,20,1.0,0.75],
+    [58,29,0.8,0.6],[68,22,1.1,0.8],[78,27,0.9,0.7],[89,19,1.5,0.9],[3,36,1.1,0.8],
+    [22,34,1.2,0.85],[45,39,1.0,0.75],[66,37,0.8,0.6],[86,49,0.8,0.65],
+    [43,14,0.5,0.4],[50,13,0.6,0.45],[56,17,0.6,0.5],[60,14,0.5,0.4],
+    [32,8,2.2,1.0],[85,35,1.9,0.95],[14,52,2.0,0.95],[72,5,1.8,0.9],
+  ];
+  const dots=Array.from({length:16},(_,i)=>{
+    const t=i/15,dx=sx+(ex-sx)*t,dy=sy+(ey-sy)*t,passed=t<=prog;
+    return`<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="${passed?2.2:1.2}" fill="${passed?"rgba(0,245,255,0.8)":"rgba(165,180,252,0.18)"}"/>`;
+  }).join("");
+  return`<svg width="100%" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;border-radius:18px 18px 0 0;">
+<defs>
+  <radialGradient id="cosmos" cx="55%" cy="60%" r="85%"><stop offset="0%" stop-color="#0a1028"/><stop offset="40%" stop-color="#060910"/><stop offset="75%" stop-color="#040608"/><stop offset="100%" stop-color="#020304"/></radialGradient>
+  <radialGradient id="nebula1" cx="20%" cy="18%" r="38%"><stop offset="0%" stop-color="rgba(99,66,180,0.14)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></radialGradient>
+  <radialGradient id="nebula2" cx="75%" cy="75%" r="35%"><stop offset="0%" stop-color="rgba(0,100,150,0.08)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></radialGradient>
+  <radialGradient id="ocean" cx="32%" cy="28%" r="72%"><stop offset="0%" stop-color="#4fa8e8"/><stop offset="22%" stop-color="#2272cc"/><stop offset="50%" stop-color="#1558b0"/><stop offset="100%" stop-color="#082566"/></radialGradient>
+  <radialGradient id="earthSpec" cx="28%" cy="22%" r="35%"><stop offset="0%" stop-color="rgba(200,230,255,0.35)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></radialGradient>
+  <radialGradient id="terminator" cx="72%" cy="50%" r="58%"><stop offset="38%" stop-color="rgba(0,0,0,0)"/><stop offset="72%" stop-color="rgba(4,8,28,0.45)"/><stop offset="100%" stop-color="rgba(2,4,18,0.82)"/></radialGradient>
+  <radialGradient id="atmoRing" cx="50%" cy="50%" r="50%"><stop offset="74%" stop-color="rgba(0,0,0,0)"/><stop offset="88%" stop-color="rgba(100,180,255,0.25)"/><stop offset="100%" stop-color="rgba(160,220,255,0.0)"/></radialGradient>
+  <radialGradient id="moonBase" cx="32%" cy="28%" r="70%"><stop offset="0%" stop-color="#f0f3f8"/><stop offset="28%" stop-color="#d8dfe8"/><stop offset="55%" stop-color="#b8c2ce"/><stop offset="100%" stop-color="#606878"/></radialGradient>
+  <radialGradient id="moonSpec" cx="30%" cy="25%" r="32%"><stop offset="0%" stop-color="rgba(255,255,255,0.28)"/><stop offset="100%" stop-color="rgba(0,0,0,0)"/></radialGradient>
+  <radialGradient id="moonTerm" cx="70%" cy="50%" r="55%"><stop offset="40%" stop-color="rgba(0,0,0,0)"/><stop offset="70%" stop-color="rgba(5,5,20,0.4)"/><stop offset="100%" stop-color="rgba(2,2,12,0.75)"/></radialGradient>
+  <radialGradient id="exhaust" cx="50%" cy="0%" r="100%"><stop offset="0%" stop-color="#ffffff" stop-opacity="1"/><stop offset="20%" stop-color="#00f5ff" stop-opacity="0.95"/><stop offset="55%" stop-color="#818cf8" stop-opacity="0.6"/><stop offset="100%" stop-color="#4338ca" stop-opacity="0"/></radialGradient>
+  <linearGradient id="rBodyGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#a8b0c4"/><stop offset="28%" stop-color="#e8edf6"/><stop offset="55%" stop-color="#dce3f0"/><stop offset="100%" stop-color="#8a92a8"/></linearGradient>
+  <linearGradient id="rNoseGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5b5fd8"/><stop offset="42%" stop-color="#818cf8"/><stop offset="100%" stop-color="#4338c2"/></linearGradient>
+  <linearGradient id="rEngineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#1a2236"/><stop offset="50%" stop-color="#2d3f58"/><stop offset="100%" stop-color="#1a2236"/></linearGradient>
+  <radialGradient id="windowGrad" cx="38%" cy="32%" r="72%"><stop offset="0%" stop-color="#2060c0"/><stop offset="55%" stop-color="#0d2040"/><stop offset="100%" stop-color="#040c1a"/></radialGradient>
+  <filter id="mGlow" x="-90%" y="-90%" width="280%" height="280%"><feGaussianBlur stdDeviation="${moonGlowing?12:5}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="eGlow" x="-55%" y="-55%" width="210%" height="210%"><feGaussianBlur stdDeviation="12" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="rGlow" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <clipPath id="eClip"><circle cx="${EX}" cy="${EY}" r="${ER}"/></clipPath>
+  <clipPath id="mClip"><circle cx="${MX}" cy="${MY}" r="${MR}"/></clipPath>
+</defs>
+<rect width="${W}" height="${H}" fill="url(#cosmos)"/>
+<rect width="${W}" height="${H}" fill="url(#nebula1)"/>
+<rect width="${W}" height="${H}" fill="url(#nebula2)"/>
+${starData.map(([x,y,s,op],i)=>{
+  const cx=(x/100*W).toFixed(1),cy=(y/100*H*0.9).toFixed(1);
+  const dur=(2.2+i*0.19).toFixed(1),del=(i*0.13).toFixed(1);
+  return`<circle cx="${cx}" cy="${cy}" r="${s.toFixed(1)}" fill="white" opacity="${op.toFixed(2)}" style="animation:star-twinkle ${dur}s ${del}s ease-in-out infinite;"/>`;
+}).join("")}
+${moonGlowing?`<circle cx="${MX}" cy="${MY}" r="${MR+40}" fill="rgba(160,200,255,0.025)"/><circle cx="${MX}" cy="${MY}" r="${MR+20}" fill="rgba(200,225,255,0.05)"/><circle cx="${MX}" cy="${MY}" r="${MR+8}" fill="rgba(220,235,255,0.08)"/>`:``}
+<g filter="url(#mGlow)" style="${moonGlowing?'animation:moon-pulse 2s ease-in-out infinite;':''}">
+  <circle cx="${MX}" cy="${MY}" r="${MR}" fill="url(#moonBase)"/>
+  <g clip-path="url(#mClip)" opacity="0.7">
+    <ellipse cx="${MX-11}" cy="${MY-8}" rx="${MR*0.38}" ry="${MR*0.30}" fill="rgba(60,65,80,0.55)" transform="rotate(-15,${MX-11},${MY-8})"/>
+    <ellipse cx="${MX+8}" cy="${MY-13}" rx="${MR*0.24}" ry="${MR*0.20}" fill="rgba(55,60,75,0.50)" transform="rotate(8,${MX+8},${MY-13})"/>
+    <ellipse cx="${MX+14}" cy="${MY-4}" rx="${MR*0.26}" ry="${MR*0.18}" fill="rgba(58,63,78,0.48)" transform="rotate(-6,${MX+14},${MY-4})"/>
+  </g>
+  <g clip-path="url(#mClip)">
+    <circle cx="${MX-16}" cy="${MY-20}" r="${(MR*0.095).toFixed(1)}" fill="rgba(30,32,45,0.55)"/>
+    <circle cx="${MX-15}" cy="${MY-20}" r="${(MR*0.06).toFixed(1)}" fill="rgba(255,255,255,0.1)"/>
+    <circle cx="${MX+6}" cy="${MY+16}" r="${(MR*0.075).toFixed(1)}" fill="rgba(30,32,45,0.5)"/>
+    <circle cx="${MX+7}" cy="${MY+16}" r="${(MR*0.045).toFixed(1)}" fill="rgba(255,255,255,0.08)"/>
+  </g>
+  <circle cx="${MX}" cy="${MY}" r="${MR}" fill="url(#moonSpec)"/>
+  <circle cx="${MX}" cy="${MY}" r="${MR}" fill="url(#moonTerm)"/>
+  <circle cx="${MX}" cy="${MY}" r="${MR}" fill="none" stroke="rgba(200,215,240,0.2)" stroke-width="1.2"/>
+</g>
+${pct>=100?`<text x="${MX}" y="${MY+MR+22}" text-anchor="middle" fill="#fde68a" font-size="13" font-weight="800" font-family="Heebo,Arial">🏆 הגענו ליעד!</text>`:`<text x="${MX}" y="${MY+MR+21}" text-anchor="middle" fill="rgba(148,163,184,0.6)" font-size="10.5" font-family="Heebo,Arial">יעד 🌙 ₪${fmt(monthTarget)}</text>`}
+<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="rgba(0,245,255,0.07)" stroke-width="1" stroke-dasharray="4 7"/>
+${prog>0.01?`<line x1="${sx}" y1="${sy}" x2="${rx.toFixed(1)}" y2="${ry.toFixed(1)}" stroke="rgba(0,245,255,0.15)" stroke-width="5" stroke-linecap="round" style="filter:blur(3px)"/><line x1="${sx}" y1="${sy}" x2="${rx.toFixed(1)}" y2="${ry.toFixed(1)}" stroke="rgba(0,245,255,0.7)" stroke-width="1.8" stroke-linecap="round"/>`:``}
+${dots}
+${prog>0.01?`
+  <ellipse cx="${(rx+(sx-ex)*0.07).toFixed(1)}" cy="${(ry+(sy-ey)*0.07+22).toFixed(1)}" rx="4" ry="18" fill="url(#exhaust)" opacity="0.7" style="animation:rocket-float 0.6s ease-in-out infinite;" transform="rotate(${(Math.atan2(sy-ey,sx-ex)*180/Math.PI-90).toFixed(1)},${(rx+(sx-ex)*0.07).toFixed(1)},${(ry+(sy-ey)*0.07+22).toFixed(1)})"/>
+  <ellipse cx="${(rx+(sx-ex)*0.065).toFixed(1)}" cy="${(ry+(sy-ey)*0.065+18).toFixed(1)}" rx="2.5" ry="10" fill="url(#exhaust)" opacity="1" style="animation:rocket-float 0.9s 0.15s ease-in-out infinite;" transform="rotate(${(Math.atan2(sy-ey,sx-ex)*180/Math.PI-90).toFixed(1)},${(rx+(sx-ex)*0.065).toFixed(1)},${(ry+(sy-ey)*0.065+18).toFixed(1)})"/>
+`:``}
+<g filter="url(#rGlow)" transform="translate(${(rx-16).toFixed(1)},${(ry-32).toFixed(1)}) rotate(${ang},16,32)" style="animation:rocket-float 1.8s ease-in-out infinite;">
+  <!-- Left fin -->
+  <polygon points="5,42 -7,62 6,57" fill="#4338ca"/>
+  <polygon points="5,42 -7,62 2,60" fill="rgba(255,255,255,0.1)"/>
+  <!-- Right fin -->
+  <polygon points="27,42 39,62 26,57" fill="#4338ca"/>
+  <polygon points="27,42 39,62 30,60" fill="rgba(255,255,255,0.1)"/>
+  <!-- Engine nozzle outer -->
+  <path d="M8,50 Q16,57 24,50 L22,46 Q16,52 10,46 Z" fill="url(#rEngineGrad)"/>
+  <!-- Engine nozzle ring -->
+  <ellipse cx="16" cy="46" rx="8" ry="2.8" fill="#374151"/>
+  <ellipse cx="16" cy="46" rx="5.5" ry="1.8" fill="#4b5563"/>
+  <ellipse cx="16" cy="46" rx="3" ry="1" fill="#6b7280"/>
+  <!-- Main body -->
+  <rect x="5" y="20" width="22" height="28" rx="3.5" fill="url(#rBodyGrad)"/>
+  <!-- Body shadow left -->
+  <rect x="5" y="20" width="4.5" height="28" rx="2.5" fill="rgba(0,0,0,0.2)"/>
+  <!-- Body shadow right -->
+  <rect x="22.5" y="20" width="4.5" height="28" rx="2.5" fill="rgba(0,0,0,0.25)"/>
+  <!-- Body highlight stripe -->
+  <rect x="9" y="21" width="3.5" height="26" rx="1.8" fill="rgba(255,255,255,0.28)"/>
+  <!-- Panel lines -->
+  <line x1="5" y1="32" x2="27" y2="32" stroke="rgba(60,80,120,0.45)" stroke-width="0.9"/>
+  <line x1="5" y1="41" x2="27" y2="41" stroke="rgba(60,80,120,0.45)" stroke-width="0.9"/>
+  <!-- Accent stripe -->
+  <rect x="5" y="34" width="22" height="4" rx="1.5" fill="rgba(99,102,241,0.55)"/>
+  <rect x="5" y="34" width="22" height="4" rx="1.5" fill="none" stroke="rgba(139,143,255,0.5)" stroke-width="0.6"/>
+  <!-- Window outer ring -->
+  <circle cx="16" cy="26" r="6" fill="#060f20" stroke="rgba(0,245,255,0.95)" stroke-width="1.6"/>
+  <!-- Window glass -->
+  <circle cx="16" cy="26" r="4.4" fill="url(#windowGrad)"/>
+  <!-- Window inner detail -->
+  <circle cx="16" cy="26" r="2.8" fill="rgba(30,80,180,0.3)" stroke="rgba(100,180,255,0.25)" stroke-width="0.6"/>
+  <!-- Window specular highlight -->
+  <ellipse cx="14.2" cy="24.4" rx="1.6" ry="1.1" fill="rgba(255,255,255,0.55)"/>
+  <circle cx="18" cy="27.5" r="0.7" fill="rgba(255,255,255,0.2)"/>
+  <!-- Rivets -->
+  <circle cx="7.5" cy="22.5" r="1" fill="rgba(160,175,200,0.7)"/>
+  <circle cx="24.5" cy="22.5" r="1" fill="rgba(160,175,200,0.7)"/>
+  <circle cx="7.5" cy="45.5" r="1" fill="rgba(160,175,200,0.7)"/>
+  <circle cx="24.5" cy="45.5" r="1" fill="rgba(160,175,200,0.7)"/>
+  <!-- Nose cone -->
+  <path d="M16,1 C13,4 5,14 5,22 L27,22 C27,14 19,4 16,1 Z" fill="url(#rNoseGrad)"/>
+  <!-- Nose left highlight -->
+  <path d="M16,1 C14,5 8,14 8,22 L16,22 Z" fill="rgba(255,255,255,0.18)"/>
+  <!-- Nose tip specular -->
+  <ellipse cx="14.5" cy="5" rx="2" ry="1.2" fill="rgba(255,255,255,0.55)"/>
+  <circle cx="15" cy="3" r="0.9" fill="rgba(255,255,255,0.4)"/>
+  <!-- Nose-body seam -->
+  <ellipse cx="16" cy="22" rx="11" ry="2" fill="rgba(0,0,0,0.18)"/>
+  <line x1="5" y1="22" x2="27" y2="22" stroke="rgba(80,100,150,0.5)" stroke-width="1"/>
+</g>
+<circle cx="${EX}" cy="${EY}" r="${ER+24}" fill="rgba(30,80,200,0.05)" style="animation:earth-glow 4s ease-in-out infinite;"/>
+<circle cx="${EX}" cy="${EY}" r="${ER+12}" fill="rgba(50,110,220,0.09)"/>
+<circle cx="${EX}" cy="${EY}" r="${ER+5}" fill="rgba(80,150,240,0.14)"/>
+<g filter="url(#eGlow)">
+  <circle cx="${EX}" cy="${EY}" r="${ER}" fill="url(#ocean)"/>
+  <g clip-path="url(#eClip)">
+    <path d="M${EX-14},${EY-38} C${EX-8},${EY-44} ${EX+5},${EY-30} ${EX+8},${EY-20} C${EX+2},${EY-8} ${EX-5},${EY-8} ${EX-20},${EY-20} C${EX-22},${EY-30} ${EX-20},${EY-36} ${EX-14},${EY-38}Z" fill="rgba(34,160,80,0.72)"/>
+    <path d="M${EX-12},${EY-6} C${EX+8},${EY-4} ${EX+10},${EY+18} ${EX-4},${EY+35} C${EX-14},${EY+38} ${EX-22},${EY+16} ${EX-12},${EY-6}Z" fill="rgba(36,170,85,0.68)"/>
+    <path d="M${EX+22},${EY-50} C${EX+50},${EY-15} ${EX+46},${EY+14} ${EX+20},${EY+8} C${EX+18},${EY-5} ${EX+20},${EY-20} ${EX+22},${EY-50}Z" fill="rgba(38,165,82,0.65)"/>
+    <path d="M${EX-52},${EY-30} C${EX-20},${EY-52} ${EX-6},${EY-22} ${EX-16},${EY-20} C${EX-38},${EY-20} ${EX-52},${EY-30} ${EX-52},${EY-30}Z" fill="rgba(32,155,76,0.67)"/>
+    <ellipse cx="${EX}" cy="${(EY-ER).toFixed(0)}" rx="${(ER*0.58).toFixed(1)}" ry="${(ER*0.22).toFixed(1)}" fill="rgba(240,248,255,0.82)"/>
+    <ellipse cx="${EX}" cy="${(EY+ER-2).toFixed(0)}" rx="${(ER*0.46).toFixed(1)}" ry="${(ER*0.16).toFixed(1)}" fill="rgba(235,245,255,0.78)"/>
+    <ellipse cx="${EX-28}" cy="${EY-8}" rx="24" ry="5" fill="rgba(255,255,255,0.22)" transform="rotate(-14,${EX-28},${EY-8})" style="animation:atmo-shimmer 5s ease-in-out infinite;"/>
+    <ellipse cx="${EX+8}" cy="${EY+18}" rx="20" ry="4.5" fill="rgba(255,255,255,0.18)" transform="rotate(10,${EX+8},${EY+18})" style="animation:atmo-shimmer 6s 1s ease-in-out infinite;"/>
+    <ellipse cx="${EX+18}" cy="${EY-28}" rx="16" ry="3.5" fill="rgba(255,255,255,0.2)" transform="rotate(-6,${EX+18},${EY-28})" style="animation:atmo-shimmer 4s 2s ease-in-out infinite;"/>
+    <circle cx="${EX}" cy="${EY}" r="${ER}" fill="url(#terminator)"/>
+    <circle cx="${(EX+ER*0.52).toFixed(0)}" cy="${(EY-ER*0.12).toFixed(0)}" r="1.4" fill="rgba(255,210,80,0.35)"/>
+    <circle cx="${(EX+ER*0.58).toFixed(0)}" cy="${(EY+ER*0.08).toFixed(0)}" r="1.1" fill="rgba(255,200,70,0.3)"/>
+  </g>
+  <circle cx="${EX}" cy="${EY}" r="${ER}" fill="url(#earthSpec)"/>
+  <circle cx="${EX}" cy="${EY}" r="${ER}" fill="url(#atmoRing)"/>
+  <circle cx="${EX}" cy="${EY}" r="${ER}" fill="none" stroke="rgba(130,190,255,0.28)" stroke-width="2"/>
+</g>
+<text x="${EX}" y="${EY+ER+24}" text-anchor="middle" fill="rgba(148,163,184,0.52)" font-size="11" font-family="Heebo,Arial">כדור הארץ 🌍</text>
+</svg>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER ENGINE
+// ════════════════════════════════════════════════════════════
+function render(){
+  const root=document.getElementById('root');
+  if(APP.view==='loading'){
+    root.innerHTML=`<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+      <div class="loading-spinner" style="width:36px;height:36px;border-width:3px;"></div>
+      <div style="font-size:11px;color:var(--text-dim);letter-spacing:.12em;">טוען...</div>
+    </div>`;
+    return;
+  }
+  if(APP.view==='login'){ root.innerHTML=renderLogin(); return; }
+  if(APP.view==='forgot'){ root.innerHTML=renderForgot(); return; }
+  if(APP.view==='reset'){ root.innerHTML=renderReset(); return; }
+  if(APP.view==='admin'){
+    if(APP.viewingRep){
+      root.innerHTML=renderTopbar()+renderRepViewBanner()+renderDashboard(APP.viewingRep.profile,APP.viewingRep.salesData,true);
+    } else {
+      root.innerHTML=renderTopbar()+renderAdmin();
+    }
+    return;
+  }
+  if(APP.view==='manager'){
+    if(APP.viewingRep){
+      root.innerHTML=renderTopbar()+renderRepViewBanner()+renderDashboard(APP.viewingRep.profile,APP.viewingRep.salesData,true);
+    } else {
+      root.innerHTML=renderTopbar()+renderManager();
+    }
+    return;
+  }
+  if(APP.view==='dashboard'){ root.innerHTML=renderTopbar()+renderDashboard(APP.profile,APP.salesData,false); return; }
+}
+
+// ── LOGIN ──
+function renderLogin(){
+  return`<div class="login-wrap">
+  <div class="login-halo"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🚀</div>
+      <div class="login-title">נובה</div>
+      <div class="login-sub">מרכז מכירות ומעקב יומי</div>
+    </div>
+    <div class="card" style="padding:28px;border-color:rgba(124,127,245,0.15);box-shadow:0 20px 60px rgba(0,0,0,0.5),0 0 0 1px rgba(0,245,255,0.03);">
+      ${APP.resetSuccess?`<div class="success-msg" style="margin-bottom:16px;">✓ הסיסמה שונתה בהצלחה — אפשר להתחבר</div>`:''}
+      ${APP.error?`<div class="error-msg" style="margin-bottom:16px;">${APP.error}</div>`:''}
+      <form onsubmit="doLogin(event)" style="display:flex;flex-direction:column;gap:4px;">
+        <div class="input-group">
+          <div class="input-label">אימייל</div>
+          <input id="li-email" type="email" placeholder="your@email.com" required autocomplete="email"/>
+        </div>
+        <div class="input-group" style="margin-bottom:20px;">
+          <div class="input-label">סיסמה</div>
+          <input id="li-pass" type="password" placeholder="••••••••" required autocomplete="current-password"/>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;padding:14px;">כניסה למערכת</button>
+      </form>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text-dim);">נובה · מרכז פיקוד מכירות</div>
+  </div></div>`;
+}
+
+// ── FORGOT PASSWORD ──
+function renderForgot(){
+  return`<div class="login-wrap">
+  <div class="login-halo"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon" style="font-size:26px;">🔑</div>
+      <div class="login-title">איפוס סיסמה</div>
+      <div class="login-sub">נשלח לך קישור לשינוי הסיסמה</div>
+    </div>
+    <div class="card" style="padding:28px;border-color:rgba(0,245,255,0.12);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      ${APP.forgotSent
+        ?`<div class="success-msg" style="margin-bottom:16px;text-align:center;line-height:1.7;">✉️ הקישור נשלח!<br/><span style="font-size:11px;opacity:0.8;">בדוק את תיבת המייל שלך</span></div>
+           <button class="btn-ghost" style="width:100%;margin-top:4px;" onclick="APP.view='login';APP.forgotSent=false;render();">חזרה לכניסה</button>`
+        :`${APP.error?`<div class="error-msg" style="margin-bottom:16px;">${APP.error}</div>`:''}
+         <form onsubmit="doForgot(event)" style="display:flex;flex-direction:column;gap:14px;">
+           <div class="input-group">
+             <div class="input-label">אימייל</div>
+             <input id="fp-email" type="email" placeholder="your@email.com" required autocomplete="email"/>
+           </div>
+           <button type="submit" class="btn-neon" style="width:100%;padding:13px;font-size:15px;font-weight:800;">שלח קישור לאיפוס</button>
+           <button type="button" class="btn-ghost" style="width:100%;" onclick="APP.view='login';APP.error='';render();">חזרה לכניסה</button>
+         </form>`
+      }
+    </div>
+  </div></div>`;
+}
+
+// ── RESET PASSWORD ──
+function renderReset(){
+  return`<div class="login-wrap">
+  <div class="login-halo"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon" style="font-size:26px;">🔒</div>
+      <div class="login-title">סיסמה חדשה</div>
+      <div class="login-sub">בחר סיסמה חדשה לחשבונך</div>
+    </div>
+    <div class="card" style="padding:28px;border-color:rgba(0,245,255,0.12);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      ${APP.error?`<div class="error-msg" style="margin-bottom:16px;">${APP.error}</div>`:''}
+      <form onsubmit="doResetPassword(event)" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="input-group">
+          <div class="input-label">סיסמה חדשה</div>
+          <input id="rp-pass" type="password" placeholder="לפחות 6 תווים" required/>
+        </div>
+        <div class="input-group">
+          <div class="input-label">אישור סיסמה</div>
+          <input id="rp-confirm" type="password" placeholder="חזור על הסיסמה" required/>
+        </div>
+        <button type="submit" class="btn-neon" style="width:100%;padding:13px;font-size:15px;font-weight:800;">שנה סיסמה</button>
+      </form>
+    </div>
+  </div></div>`;
+}
+
+// ── TOPBAR ──
+function renderTopbar(){
+  const p=APP.profile;
+  const isAdmin=p&&p.role==='admin';
+  const isManager=p&&p.role==='manager';
+  const isViewingRep=APP.viewingRep!==null;
+  const initials=p?p.full_name.split(' ').map(w=>w[0]).join('').slice(0,2):'?';
+  let backFn='backToAdmin';
+  let title=isViewingRep?APP.viewingRep.profile.full_name:isAdmin?'ניהול צוות':isManager?'צוות שלי':'מרכז מכירות';
+  let roleBadge=isAdmin?`<span style="font-size:10px;background:rgba(124,127,245,0.15);color:var(--accent2);padding:2px 7px;border-radius:5px;font-weight:700;border:1px solid rgba(124,127,245,0.25);">ADMIN</span>`:isManager?`<span style="font-size:10px;background:rgba(0,245,255,0.1);color:var(--neon);padding:2px 7px;border-radius:5px;font-weight:700;border:1px solid rgba(0,245,255,0.2);">מנהל</span>`:'';
+  return`<div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      ${isViewingRep?`<button onclick="${backFn}()" class="btn-neon" style="font-size:12px;padding:7px 14px;">← חזור</button>`:''}
+      <div class="topbar-brand">נובה <span>·</span> ${title}</div>
+      ${roleBadge}
+    </div>
+    <div class="topbar-user">
+      ${isAdmin&&!isViewingRep?`<button onclick="showAddRep()" class="btn-ghost" style="font-size:12px;padding:6px 12px;">+ הוסף משתמש</button>`:''}
+      <div style="font-size:12px;color:var(--text-sub);">${p?p.full_name:''}</div>
+      <div class="avatar">${initials}</div>
+      <button onclick="doLogout()" class="btn-ghost" style="font-size:12px;padding:6px 10px;">יציאה</button>
+    </div>
+  </div>`;
+}
+
+// ── REP VIEW BANNER ──
+function renderRepViewBanner(){
+  const r=APP.viewingRep;
+  return`<div style="max-width:980px;margin:12px auto 0;padding:0 16px;">
+    <div class="readonly-banner">
+      <span style="font-size:16px;">👁️</span>
+      <span>מצב צפייה — דשבורד של <strong>${r.profile.full_name}</strong> (לקריאה בלבד)</span>
+    </div>
+  </div>`;
+}
+
+// ── ADMIN PANEL ──
+function renderAdmin(){
+  const reps=APP.allReps||[];
+  const {daysPassed,daysLeft,totalDays}=getMonthInfo();
+  const totalMonthlySales=reps.reduce((a,r)=>a+(r.month_sales||0),0);
+  const totalTodaySales=reps.reduce((a,r)=>a+(r.today_sales||0),0);
+  const repsOnTarget=reps.filter(r=>{
+    const target=r.settings?.monthTarget||0;
+    return target>0&&(r.month_sales||0)>=target;
+  }).length;
+
+  return`<div class="admin-wrap">
+
+  <!-- SUMMARY CARDS -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+    <div class="card-luxury" style="padding:20px 22px;">
+      <div class="label label-silver" style="margin-bottom:8px;">סה"כ מכירות הצוות החודש</div>
+      <div class="num-xl" style="background:linear-gradient(135deg,#f1f5f9,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">₪${fmt(totalMonthlySales)}</div>
+    </div>
+    <div class="card" style="border-color:rgba(0,245,255,0.2);">
+      <div class="label label-neon" style="margin-bottom:8px;">מכירות הצוות היום</div>
+      <div class="num-lg" style="color:var(--neon);">₪${fmt(totalTodaySales)}</div>
+    </div>
+    <div class="card" style="border-color:rgba(74,222,128,0.2);">
+      <div class="label label-green" style="margin-bottom:8px;">עמדו ביעד החודש</div>
+      <div class="num-lg" style="color:var(--green);">${repsOnTarget} / ${reps.length}</div>
+    </div>
+    <div class="card">
+      <div class="label" style="margin-bottom:8px;">ימים בחודש</div>
+      <div class="num-lg" style="color:var(--accent2);">${daysPassed} / ${totalDays}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">נותרו ${daysLeft} ימים</div>
+    </div>
+  </div>
+
+  <!-- WORK DAYS CONTROLLER -->
+  <div class="card" style="border-color:rgba(191,90,242,0.2);background:linear-gradient(145deg,rgba(191,90,242,0.04),rgba(124,127,245,0.04));">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+      <div>
+        <div class="label" style="color:rgba(191,90,242,0.8);margin-bottom:4px;">🗓️ ימי עבודה</div>
+        <div style="font-size:12px;color:var(--text-sub);">
+          ${(()=>{const {total,passed,left}=calcIsraeliWorkDays();return`חישוב אוטומטי (ראשון–חמישי): <strong style="color:var(--neon);">${total}</strong> ימים בחודש · עברו <strong style="color:var(--green);">${passed}</strong> · נותרו <strong style="color:var(--gold2);">${left}</strong>`;})()}
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:3px;">עקוף ידנית רק אם יש חגים או אירועים מיוחדים</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div class="label" style="margin-bottom:2px;">דרוס — סה"כ ימי עבודה</div>
+          <input id="wd-total" type="number" min="1" max="31" value="${APP.appSettings.work_days_total||''}" placeholder="אוטומטי" style="width:120px;font-size:14px;text-align:center;padding:8px;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div class="label" style="margin-bottom:2px;">דרוס — ימים שנשארו</div>
+          <input id="wd-left" type="number" min="0" max="31" value="${APP.appSettings.work_days_left||''}" placeholder="אוטומטי" style="width:120px;font-size:14px;text-align:center;padding:8px;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:16px;">
+          <button onclick="saveWorkDays()" class="btn-neon" style="padding:9px 18px;font-size:13px;">💾 שמור דריסה</button>
+          ${APP.appSettings.work_days_total?`<button onclick="resetWorkDays()" class="btn-ghost" style="padding:7px 14px;font-size:11px;">↺ חזור לאוטומטי</button>`:''}
+        </div>
+      </div>
+      ${APP.appSettings.work_days_total?`<div class="badge badge-neon">מצב ידני — ${APP.appSettings.work_days_left} ימים נשארו מתוך ${APP.appSettings.work_days_total}</div>`:`<div class="badge badge-green">✅ אוטומטי — ראשון עד חמישי</div>`}
+    </div>
+  </div>
+
+  <!-- REPS TABLE -->
+  <div class="card" style="padding:0;overflow:hidden;border-color:rgba(124,127,245,0.12);">
+    <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="label label-accent" style="margin-bottom:3px;">צוות המכירות</div>
+        <div style="font-size:11px;color:var(--text-dim);">${reps.length} נציגים · עדכון אוטומטי בכל רענון</div>
+      </div>
+      <button onclick="refreshAdmin()" class="btn-ghost" style="font-size:12px;padding:6px 12px;">↺ רענן</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="rep-table">
+        <thead>
+          <tr>
+            <th>נציג</th>
+            <th>מכירות חודש</th>
+            <th>יעד חודשי</th>
+            <th>התקדמות</th>
+            <th>נותר ליעד</th>
+            <th>ממוצע יומי נדרש</th>
+            <th>היום</th>
+            <th>רצף</th>
+            <th>מנהל</th>
+            <th>סטטוס</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reps.length===0?`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-dim);">אין נציגים עדיין — הוסף נציג ראשון</td></tr>`:
+          reps.map(r=>{
+            const monthSales=r.month_sales||0;
+            const target=r.settings?.monthTarget||0;
+            const pct=target>0?Math.min((monthSales/target)*100,100):0;
+            const todaySales=r.today_sales||0;
+            const todayTarget=r.settings?.dailyTarget||0;
+            const dailyAvgActual=daysPassed>0?monthSales/Math.max(daysPassed,1):0;
+            const dailyAvgNeeded=daysLeft>0?(target-monthSales)/daysLeft:0;
+            const onPace=dailyAvgActual>=dailyAvgNeeded;
+            const initials=r.full_name.split(' ').map(w=>w[0]).join('').slice(0,2);
+            return`<tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="avatar" style="width:32px;height:32px;font-size:11px;">${initials}</div>
+                  <div>
+                    <div class="rep-row-name">${r.full_name}</div>
+                    <div style="font-size:10px;color:var(--text-dim);">${r.email||''}</div>
+                  </div>
+                </div>
+              </td>
+              <td><span style="font-weight:800;color:var(--green);font-size:15px;">₪${fmt(monthSales)}</span></td>
+              <td><span style="color:var(--text-sub);">₪${fmt(target)}</span></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="pace-bar"><div class="pace-fill" style="width:${pct}%;background:${pct>=100?"linear-gradient(90deg,#fbbf24,#fde68a)":"linear-gradient(90deg,#4f46e5,#00f5ff)"};"></div></div>
+                  <span style="font-size:12px;font-weight:700;color:${pct>=100?"var(--gold2)":"var(--neon)"};">${pct.toFixed(0)}%</span>
+                </div>
+              </td>
+              <td><span style="font-weight:700;color:${pct>=100?"var(--gold2)":"var(--red)"};">₪${fmt(Math.max(0,target-monthSales))}</span></td>
+              <td><span style="font-weight:700;color:${onPace?"var(--green)":"var(--red)"};">${daysLeft>0?`₪${fmt(Math.max(0,dailyAvgNeeded))}`:"—"}</span><div style="font-size:9px;color:var(--text-dim);">/יום</div></td>
+              <td><span style="font-weight:700;color:var(--cyan);">₪${fmt(todaySales)}</span>${todayTarget>0?`<div style="font-size:10px;color:var(--text-dim);">מ-₪${fmt(todayTarget)}</div>`:''}</td>
+              <td><span style="font-weight:700;color:#fb923c;">${r.streak||0} ימים</span></td>
+              <td>
+                ${APP.allManagers&&APP.allManagers.length>0
+                  ? `<select onchange="assignManager('${r.id}',this.value)" style="background:rgba(22,22,22,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--text);padding:5px 8px;font-size:11px;font-family:var(--font);font-weight:600;outline:none;max-width:110px;">
+                      <option value="">ללא</option>
+                      ${APP.allManagers.map(m=>`<option value="${m.id}" ${r.manager_id===m.id?'selected':''}>${m.full_name}</option>`).join('')}
+                    </select>`
+                  : `<span style="font-size:11px;color:var(--text-dim);">—</span>`}
+              </td>
+              <td>${pct>=100?`<span class="badge badge-gold">🏆 יעד!</span>`:onPace?`<span class="badge badge-green">🚀 בדרך לירח!</span>`:`<span class="badge badge-red">⬆️ להרים קצב</span>`}</td>
+              <td>
+                <div style="display:flex;gap:5px;align-items:center;">
+                  <button onclick="editRep('${r.id}')" class="btn-ghost" style="font-size:11px;padding:5px 10px;white-space:nowrap;">✏️ ערוך</button>
+                  <button onclick="deleteRep('${r.id}','${r.full_name}')" class="btn-danger" style="font-size:11px;padding:5px 10px;white-space:nowrap;">🗑️</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MANAGERS SECTION -->
+  <div class="card" style="border-color:rgba(0,245,255,0.15);background:linear-gradient(145deg,rgba(0,245,255,0.03),rgba(124,127,245,0.03));">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="label label-neon">👤 מנהלי מכירות (${APP.allManagers.length})</div>
+      <button onclick="showAddRep()" class="btn-ghost" style="font-size:11px;padding:5px 12px;">+ הוסף משתמש</button>
+    </div>
+    ${APP.allManagers.length===0?`<div style="font-size:12px;color:var(--text-dim);text-align:center;padding:12px 0;">אין מנהלי מכירות עדיין — צור יוזר עם תפקיד מנהל</div>`:`
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${APP.allManagers.map(m=>{
+        const initials=m.full_name.split(' ').map(w=>w[0]).join('').slice(0,2);
+        const myReps=APP.allReps.filter(r=>r.manager_id===m.id);
+        return`<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(0,245,255,0.12);border-radius:10px;padding:10px 14px;">
+          <div class="avatar" style="width:34px;height:34px;font-size:12px;background:linear-gradient(135deg,#0ea5e9,#0284c7);">${initials}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">${m.full_name}</div>
+            <div style="font-size:10px;color:var(--text-dim);">${m.email||''} · ${myReps.length} נציגים</div>
+          </div>
+          <div style="display:flex;gap:5px;">
+            <button onclick="editRep('${m.id}')" class="btn-ghost" style="font-size:11px;padding:5px 10px;">✏️ ערוך</button>
+            <button onclick="deleteRep('${m.id}','${m.full_name}')" class="btn-danger" style="font-size:11px;padding:5px 10px;">🗑️</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`}
+  </div>
+
+  <!-- ADD REP MODAL -->
+  ${APP.showAddRepModal?renderAddRepModal():''}
+  <!-- EDIT REP MODAL -->
+  ${APP.showEditRepModal&&APP.editingRep?renderEditRepModal():''}
+  </div>`;
+}
+
+function renderCancelModal(){
+  return`<div onclick="closeCancelModal()" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div onclick="event.stopPropagation()" style="background:var(--surface2);border:1px solid rgba(251,191,36,0.3);border-radius:20px;padding:32px 28px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <div style="font-size:48px;margin-bottom:16px;">💛</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:12px;line-height:1.4;">לא נורא!</div>
+      <div style="font-size:14px;color:var(--text-sub);line-height:1.7;margin-bottom:24px;">"סבתא תמיד אמרה — אם הלך אחד, יבוא אחר יותר נחמד" 😊<br><br>ביטולים הם חלק מהמשחק. ממשיכים קדימה ומוכרים!</div>
+      <button onclick="closeCancelModal()" class="btn-primary" style="width:100%;">💪 קדימה!</button>
+    </div>
+  </div>`;
+}
+
+function renderAddRepModal(){
+  const managers=APP.allManagers||[];
+  return`<div class="modal-overlay" onclick="closeAddRep(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:800;background:linear-gradient(135deg,#f1f5f9,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">+ הוסף משתמש</div>
+        <button onclick="closeAddRep()" class="btn-ghost" style="padding:6px 12px;font-size:12px;">✕</button>
+      </div>
+      ${APP.addRepError?`<div class="error-msg" style="margin-bottom:14px;">${APP.addRepError}</div>`:''}
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div><div class="label" style="margin-bottom:5px;">שם מלא</div><input id="ar-name" type="text" placeholder="ישראל ישראלי"/></div>
+        <div><div class="label" style="margin-bottom:5px;">אימייל</div><input id="ar-email" type="email" placeholder="rep@company.com"/></div>
+        <div><div class="label" style="margin-bottom:5px;">סיסמה ראשונית</div><input id="ar-pass" type="password" placeholder="לפחות 6 תווים"/></div>
+        <div>
+          <div class="label" style="margin-bottom:5px;">תפקיד</div>
+          <select id="ar-role" onchange="document.getElementById('ar-rep-fields').style.display=this.value==='rep'?'flex':'none'" style="background:rgba(22,22,22,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:var(--text);padding:11px 14px;font-size:14px;font-family:var(--font);font-weight:600;width:100%;outline:none;">
+            <option value="rep">נציג מכירות</option>
+            <option value="manager">מנהל מכירות</option>
+          </select>
+        </div>
+        ${managers.length>0?`<div id="ar-manager-wrap"><div class="label" style="margin-bottom:5px;">שייך למנהל (אופציונלי)</div>
+          <select id="ar-manager" style="background:rgba(22,22,22,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:var(--text);padding:11px 14px;font-size:14px;font-family:var(--font);font-weight:600;width:100%;outline:none;">
+            <option value="">— ללא מנהל —</option>
+            ${managers.map(m=>`<option value="${m.id}">${m.full_name}</option>`).join('')}
+          </select></div>`:''}
+        <div id="ar-rep-fields" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="divider"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div><div class="label label-green" style="margin-bottom:5px;">יעד חודשי ₪</div><input id="ar-mtarget" type="number" placeholder="150000" value="150000"/></div>
+            <div><div class="label label-cyan" style="margin-bottom:5px;">יעד יומי ₪</div><input id="ar-dtarget" type="number" placeholder="7000" value="7000"/></div>
+          </div>
+          <div class="divider"></div>
+          <div class="label label-accent" style="margin-bottom:4px;">שכבות עמלה</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;font-size:12px;">
+            <div><div class="label" style="margin-bottom:3px;">מ-₪</div><input id="t0-from" type="number" value="0" style="font-size:13px;"/></div>
+            <div><div class="label" style="margin-bottom:3px;">עד-₪</div><input id="t0-to" type="number" value="50000" style="font-size:13px;"/></div>
+            <div><div class="label" style="margin-bottom:3px;">%</div><input id="t0-pct" type="number" value="5" style="font-size:13px;"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;font-size:12px;">
+            <div><input id="t1-from" type="number" value="50000" style="font-size:13px;"/></div>
+            <div><input id="t1-to" type="number" value="100000" style="font-size:13px;"/></div>
+            <div><input id="t1-pct" type="number" value="8" style="font-size:13px;"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;font-size:12px;">
+            <div><input id="t2-from" type="number" value="100000" style="font-size:13px;"/></div>
+            <div><input id="t2-to" type="number" placeholder="ריק=∞" style="font-size:13px;"/></div>
+            <div><input id="t2-pct" type="number" value="12" style="font-size:13px;"/></div>
+          </div>
+          <div class="divider"></div>
+          <div><div class="label label-gold" style="margin-bottom:5px;">בונוס יעד ₪</div><input id="ar-bonus" type="number" placeholder="2000" value="2000"/></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button onclick="doAddRep()" class="btn-primary" style="flex:1;" id="add-rep-btn">צור משתמש</button>
+          <button onclick="closeAddRep()" class="btn-ghost">ביטול</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderEditRepModal(){
+  const r=APP.editingRep;
+  const cfg=r.settings||{baseSalary:8000,tiers:[{from:0,to:50000,pct:5},{from:50000,to:100000,pct:8},{from:100000,to:null,pct:12}],targetBonus:2000,monthTarget:150000,dailyTarget:7000};
+  const t=cfg.tiers||[];
+  const t0=t[0]||{from:0,to:50000,pct:5};
+  const t1=t[1]||{from:50000,to:100000,pct:8};
+  const t2=t[2]||{from:100000,to:null,pct:12};
+  const managers=APP.allManagers||[];
+  const currentRole=r.role||'rep';
+  const selStyle=`background:rgba(22,22,22,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:var(--text);padding:11px 14px;font-size:14px;font-family:var(--font);font-weight:600;width:100%;outline:none;`;
+  return`<div class="modal-overlay" onclick="closeEditRep(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:800;background:linear-gradient(135deg,#f1f5f9,#00f5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">✏️ עריכת משתמש — ${r.full_name}</div>
+        <button onclick="closeEditRep()" class="btn-ghost" style="padding:6px 12px;font-size:12px;">✕</button>
+      </div>
+      ${APP.editRepError?`<div class="error-msg" style="margin-bottom:14px;white-space:pre-wrap;font-size:11px;line-height:1.6;">${APP.editRepError}</div>`:''}
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div><div class="label" style="margin-bottom:5px;">שם מלא</div><input id="er-name" type="text" value="${r.full_name||''}"/></div>
+        <div>
+          <div class="label" style="margin-bottom:5px;">תפקיד</div>
+          <select id="er-role" onchange="document.getElementById('er-rep-fields').style.display=this.value==='rep'?'flex':'none'" style="${selStyle}">
+            <option value="rep" ${currentRole==='rep'?'selected':''}>נציג מכירות</option>
+            <option value="manager" ${currentRole==='manager'?'selected':''}>מנהל מכירות</option>
+          </select>
+        </div>
+        ${managers.length>0?`<div><div class="label" style="margin-bottom:5px;">שייך למנהל</div>
+          <select id="er-manager" style="${selStyle}">
+            <option value="">— ללא מנהל —</option>
+            ${managers.map(m=>`<option value="${m.id}" ${r.manager_id===m.id?'selected':''}>${m.full_name}</option>`).join('')}
+          </select></div>`:''}
+        <div id="er-rep-fields" style="display:${currentRole==='rep'?'flex':'none'};flex-direction:column;gap:12px;">
+          <div class="divider"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div><div class="label label-green" style="margin-bottom:5px;">יעד חודשי ₪</div><input id="er-mtarget" type="number" value="${cfg.monthTarget||150000}"/></div>
+            <div><div class="label label-cyan" style="margin-bottom:5px;">יעד יומי ₪</div><input id="er-dtarget" type="number" value="${cfg.dailyTarget||7000}"/></div>
+          </div>
+          <div class="divider"></div>
+          <div class="label label-accent" style="margin-bottom:4px;">שכבות עמלה (מ-₪ / עד-₪ / אחוז)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;">
+            <input id="et0-from" type="number" value="${t0.from}" placeholder="מ-₪" style="font-size:13px;"/>
+            <input id="et0-to" type="number" value="${t0.to||''}" placeholder="עד-₪" style="font-size:13px;"/>
+            <input id="et0-pct" type="number" value="${t0.pct}" placeholder="%" style="font-size:13px;"/>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;">
+            <input id="et1-from" type="number" value="${t1.from}" placeholder="מ-₪" style="font-size:13px;"/>
+            <input id="et1-to" type="number" value="${t1.to||''}" placeholder="עד-₪" style="font-size:13px;"/>
+            <input id="et1-pct" type="number" value="${t1.pct}" placeholder="%" style="font-size:13px;"/>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 70px;gap:6px;">
+            <input id="et2-from" type="number" value="${t2.from}" placeholder="מ-₪" style="font-size:13px;"/>
+            <input id="et2-to" type="number" value="${t2.to||''}" placeholder="ריק=∞" style="font-size:13px;"/>
+            <input id="et2-pct" type="number" value="${t2.pct}" placeholder="%" style="font-size:13px;"/>
+          </div>
+          <div class="divider"></div>
+          <div><div class="label label-gold" style="margin-bottom:5px;">בונוס יעד ₪</div><input id="er-bonus" type="number" value="${cfg.targetBonus||2000}"/></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button onclick="doEditRep('${r.id}')" class="btn-neon" style="flex:1;">💾 שמור שינויים</button>
+          <button onclick="closeEditRep()" class="btn-ghost">ביטול</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── MANAGER VIEW ──
+function renderManager(){
+  const reps=APP.allReps||[];
+  const {daysPassed,daysLeft,totalDays}=getMonthInfo();
+  const totalMonthlySales=reps.reduce((a,r)=>a+(r.month_sales||0),0);
+  const totalTodaySales=reps.reduce((a,r)=>a+(r.today_sales||0),0);
+  const repsOnTarget=reps.filter(r=>{
+    const target=r.settings?.monthTarget||0;
+    return target>0&&(r.month_sales||0)>=target;
+  }).length;
+  return`<div class="admin-wrap">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+    <div class="card-luxury" style="padding:20px 22px;">
+      <div class="label label-silver" style="margin-bottom:8px;">סה"כ מכירות הצוות החודש</div>
+      <div class="num-xl" style="background:linear-gradient(135deg,#f1f5f9,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">₪${fmt(totalMonthlySales)}</div>
+    </div>
+    <div class="card" style="border-color:rgba(0,245,255,0.2);">
+      <div class="label label-neon" style="margin-bottom:8px;">מכירות הצוות היום</div>
+      <div class="num-lg" style="color:var(--neon);">₪${fmt(totalTodaySales)}</div>
+    </div>
+    <div class="card" style="border-color:rgba(74,222,128,0.2);">
+      <div class="label label-green" style="margin-bottom:8px;">עמדו ביעד החודש</div>
+      <div class="num-lg" style="color:var(--green);">${repsOnTarget} / ${reps.length}</div>
+    </div>
+    <div class="card">
+      <div class="label" style="margin-bottom:8px;">ימים בחודש</div>
+      <div class="num-lg" style="color:var(--accent2);">${daysPassed} / ${totalDays}</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">נותרו ${daysLeft} ימים</div>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;border-color:rgba(0,245,255,0.12);">
+    <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="label label-neon" style="margin-bottom:3px;">הנציגים שלי</div>
+        <div style="font-size:11px;color:var(--text-dim);">${reps.length} נציגים</div>
+      </div>
+      <button onclick="refreshManager()" class="btn-ghost" style="font-size:12px;padding:6px 12px;">↺ רענן</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="rep-table">
+        <thead><tr>
+          <th>נציג</th><th>מכירות חודש</th><th>יעד חודשי</th><th>התקדמות</th>
+          <th>נותר ליעד</th><th>ממוצע יומי נדרש</th><th>היום</th><th>רצף</th><th>סטטוס</th>
+        </tr></thead>
+        <tbody>
+          ${reps.length===0?`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-dim);">אין נציגים מוצמדים אליך עדיין</td></tr>`:
+          reps.map(r=>{
+            const monthSales=r.month_sales||0, target=r.settings?.monthTarget||0;
+            const pct=target>0?Math.min((monthSales/target)*100,100):0;
+            const todaySales=r.today_sales||0, todayTarget=r.settings?.dailyTarget||0;
+            const dailyAvgActual=daysPassed>0?monthSales/Math.max(daysPassed,1):0;
+            const dailyAvgNeeded=daysLeft>0?(target-monthSales)/daysLeft:0;
+            const onPace=dailyAvgActual>=dailyAvgNeeded;
+            const initials=r.full_name.split(' ').map(w=>w[0]).join('').slice(0,2);
+            return`<tr>
+              <td><div style="display:flex;align-items:center;gap:10px;">
+                <div class="avatar" style="width:32px;height:32px;font-size:11px;">${initials}</div>
+                <div><div class="rep-row-name">${r.full_name}</div><div style="font-size:10px;color:var(--text-dim);">${r.email||''}</div></div>
+              </div></td>
+              <td><span style="font-weight:800;color:var(--green);font-size:15px;">₪${fmt(monthSales)}</span></td>
+              <td><span style="color:var(--text-sub);">₪${fmt(target)}</span></td>
+              <td><div style="display:flex;align-items:center;gap:8px;">
+                <div class="pace-bar"><div class="pace-fill" style="width:${pct}%;background:${pct>=100?"linear-gradient(90deg,#fbbf24,#fde68a)":"linear-gradient(90deg,#4f46e5,#00f5ff)"};"></div></div>
+                <span style="font-size:12px;font-weight:700;color:${pct>=100?"var(--gold2)":"var(--neon)"};">${pct.toFixed(0)}%</span>
+              </div></td>
+              <td><span style="font-weight:700;color:${pct>=100?"var(--gold2)":"var(--red)"};">₪${fmt(Math.max(0,target-monthSales))}</span></td>
+              <td><span style="font-weight:700;color:${onPace?"var(--green)":"var(--red)"};">${daysLeft>0?`₪${fmt(Math.max(0,dailyAvgNeeded))}`:"—"}</span><div style="font-size:9px;color:var(--text-dim);">/יום</div></td>
+              <td><span style="font-weight:700;color:var(--cyan);">₪${fmt(todaySales)}</span>${todayTarget>0?`<div style="font-size:10px;color:var(--text-dim);">מ-₪${fmt(todayTarget)}</div>`:''}</td>
+              <td><span style="font-weight:700;color:#fb923c;">${r.streak||0} ימים</span></td>
+              <td>${pct>=100?`<span class="badge badge-gold">🏆 יעד!</span>`:onPace?`<span class="badge badge-green">🚀 בדרך לירח!</span>`:`<span class="badge badge-red">⬆️ להרים קצב</span>`}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </div>`;
+}
+
+// ── DASHBOARD ──
+function renderDashboard(p, s, readOnly){
+  s=s||{};
+  const cfg=p.settings||{baseSalary:8000,tiers:[{from:0,to:50000,pct:5},{from:50000,to:100000,pct:8},{from:100000,to:null,pct:12}],targetBonus:2000,monthTarget:150000,dailyTarget:7000};
+  const ms=s.month_sales||0, mt=cfg.monthTarget||150000, dt=cfg.dailyTarget||7000;
+  const today=s.today_sales||0;
+  const rawPct=mt>0?(ms/mt)*100:0, pct=Math.min(rawPct,100);
+  const dpct=dt>0?Math.min((today/dt)*100,100):0;
+  const comm=calcComm(ms,cfg.tiers);
+  const bonus=rawPct>=100?cfg.targetBonus:0;
+  const total=comm+bonus;
+  const projComm=calcComm(mt,cfg.tiers);
+  const projTotal=projComm+(cfg.targetBonus||0);
+  const {totalDays,daysPassed,daysLeft}=getMonthInfo();
+  const dailyAvgActual=daysPassed>0?ms/Math.max(daysPassed,1):0;
+  const dailyAvgNeeded=daysLeft>0?(mt-ms)/daysLeft:0;
+  const paceStatus=dailyAvgActual>=dailyAvgNeeded||daysLeft===0;
+  const pb=s.pb||0, streak=s.streak||0;
+  const pbClose=today>0&&pb>0&&today>=pb*0.85&&today<pb;
+  const moonGlowing=readOnly?false:APP.moonGlowing;
+  const q=QUOTES[APP.quoteIdx%QUOTES.length];
+  const lastUpd=s.updated_at?new Date(s.updated_at).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}):'';
+  const lastUpdStr=lastUpd?`עודכן ${lastUpd}`:"טרם עודכן היום";
+
+  return`<div class="dash-wrap">
+
+  <!-- QUOTE -->
+  <div id="quote-block" class="card animate-boost" style="display:flex;align-items:center;gap:16px;background:linear-gradient(145deg,rgba(0,245,255,0.04),rgba(124,127,245,0.04));border-color:rgba(0,245,255,0.12);">
+    <div style="font-size:22px;flex-shrink:0;animation:float-slow 3.5s ease-in-out infinite;background:linear-gradient(135deg,var(--accent2),var(--neon));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">✦</div>
+    <div style="flex:1;min-width:0;">
+      <div style="color:var(--silver);font-size:13.5px;line-height:1.65;margin-bottom:4px;font-weight:500;">"${q.t}"</div>
+      <div style="color:var(--accent2);font-size:10px;font-weight:700;letter-spacing:.06em;">— ${q.a}</div>
+    </div>
+    ${!readOnly?`<button onclick="nextQuote()" class="btn-ghost" style="font-size:11px;padding:7px 12px;flex-shrink:0;">⚡ בוסט</button>`:''}
+  </div>
+
+  <!-- HERO -->
+  <div class="card-luxury" style="padding:26px 24px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div class="label label-silver" style="margin-bottom:10px;">סה"כ הביתה החודש 💵</div>
+        <div class="num-hero" style="background:linear-gradient(135deg,#f1f5f9 0%,#94a3b8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">₪${fmt(total)}</div>
+        <div style="margin-top:11px;display:flex;gap:9px;flex-wrap:wrap;">
+          <span class="badge badge-green">עמלה ₪${fmt(comm)}</span>
+          ${bonus>0?`<span class="badge badge-gold">בונוס ₪${fmt(bonus)}</span>`:''}
+        </div>
+      </div>
+      <div style="text-align:left;min-width:120px;">
+        <div class="label label-accent" style="margin-bottom:8px;">פוטנציאל מירבי</div>
+        <div class="num-lg" style="color:var(--accent2);">₪${fmt(projTotal)}</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">אם נגיע ליעד החודש</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPACE + RIGHT -->
+  <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:stretch;" class="two-col">
+    <div style="background:var(--surface);border:1px solid rgba(0,245,255,0.15);border-radius:var(--radius);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.4),0 0 30px rgba(0,245,255,0.03);">
+      ${spaceScene(rawPct,moonGlowing,mt)}
+      <div style="padding:16px 20px;border-top:1px solid var(--border);background:rgba(255,255,255,0.015);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <div class="label label-neon" style="margin-bottom:5px;">מסלול לירח</div>
+            <div style="display:flex;align-items:baseline;gap:3px;">
+              <span style="font-size:44px;font-weight:900;background:linear-gradient(135deg,var(--accent2),var(--neon));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.03em;line-height:1;">${rawPct.toFixed(1)}</span>
+              <span style="font-size:22px;font-weight:700;color:rgba(165,180,252,0.55);">%</span>
+            </div>
+          </div>
+          <div style="text-align:left;">
+            <div class="label" style="margin-bottom:4px;">נותר ליעד</div>
+            <div style="font-size:20px;font-weight:800;color:var(--text-sub);">₪${fmt(Math.max(0,mt-ms))}</div>
+            <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">מתוך ₪${fmt(mt)}</div>
+          </div>
+        </div>
+        <div class="progress-track" style="height:5px;">
+          <div class="progress-fill" style="width:${pct}%;background:${rawPct>=100?"linear-gradient(90deg,#fde68a,#fbbf24)":"linear-gradient(90deg,#4f46e5,#00f5ff)"};box-shadow:0 0 14px ${rawPct>=100?"rgba(251,191,36,0.55)":"rgba(0,245,255,0.4)"};"></div>
+        </div>
+        ${rawPct>=100?`<div style="text-align:center;margin-top:8px;font-size:12px;font-weight:800;color:var(--gold2);animation:glow-gold 1.5s infinite;">🏆 יעד הושג! הבונוס מחכה!</div>`:''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="card" style="flex:1;border-color:rgba(74,222,128,0.18);">
+        <div class="label label-green" style="margin-bottom:8px;">📈 מכירות חודש</div>
+        <div class="num-xl" style="color:var(--green);">₪${fmt(ms)}</div>
+        <div style="margin-top:5px;font-size:11px;color:var(--text-dim);">מתוך יעד ₪${fmt(mt)}</div>
+        <div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,#059669,#4ade80);box-shadow:0 0 10px rgba(74,222,128,0.35);"></div></div>
+      </div>
+      <div class="card" style="border-color:rgba(0,245,255,0.15);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;">
+          <div class="label label-neon">☀️ היום</div>
+          <div style="font-size:10px;color:var(--text-dim);">${lastUpdStr}</div>
+        </div>
+        <div class="num-lg" style="color:var(--neon);">₪${fmt(today)}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:3px;">יעד יומי ₪${fmt(dt)}</div>
+        <div class="progress-track" style="margin-top:8px;"><div class="progress-fill" style="width:${dpct}%;background:linear-gradient(90deg,#0369a1,#00f5ff);box-shadow:0 0 10px rgba(0,245,255,0.3);"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATE BOX (hidden in read-only mode) -->
+  ${!readOnly?`<div class="update-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <div>
+        <div class="label label-accent" style="margin-bottom:5px;">📊 עדכון מכירות יומי</div>
+        <div style="font-size:11px;color:var(--text-dim);">${lastUpdStr}</div>
+      </div>
+      <span class="badge badge-accent">${today>0?`₪${fmt(today)} היום`:"טרם עודכן"}</span>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-bottom:5px;"><span>יעד יומי</span><span style="color:var(--neon);">₪${fmt(today)} / ₪${fmt(dt)}</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${dpct}%;background:linear-gradient(90deg,#0369a1,#00f5ff);"></div></div>
+    </div>
+    <div style="margin-bottom:13px;">
+      <div class="label" style="margin-bottom:7px;">כמה מכרת עד עכשיו היום? (סה"כ מצטבר)</div>
+      <input type="number" id="sale-input" placeholder="₪ הכנס סכום מצטבר להיום" style="font-size:19px;font-weight:800;text-align:center;" onkeydown="if(event.key==='Enter')doUpdateSales()"/>
+    </div>
+    <button onclick="doUpdateSales()" class="btn-update">✓ עדכן מכירות היום</button>
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:var(--text-dim);flex-shrink:0;">❌ ביטול עסקה:</span>
+      <input type="number" id="cancel-input" placeholder="סכום לביטול" min="0" style="flex:1;font-size:13px;font-weight:700;text-align:center;padding:7px 10px;background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.25);border-radius:8px;color:var(--red);"/>
+      <button onclick="doCancellation()" style="flex-shrink:0;padding:7px 14px;font-size:12px;font-weight:700;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);border-radius:8px;color:var(--red);cursor:pointer;">הפחת</button>
+    </div>
+  </div>`:''}
+
+  <!-- STATS -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;" class="four-col">
+    <div class="stat-card" style="${today>=pb&&pb>0?"border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.04);":pbClose?"border-color:rgba(251,191,36,0.25);":""}">
+      <div class="label label-gold">🏆 שיא אישי יומי</div>
+      <div class="num-md" style="color:var(--gold2);margin-top:5px;">₪${fmt(pb)}</div>
+      <div style="margin-top:5px;">${today>=pb&&pb>0?`<span class="badge badge-gold">🏆 שיא חדש!</span>`:pbClose?`<span class="badge badge-gold">🔥 כמעט!</span>`:`<span style="font-size:10px;color:var(--text-dim);">שיא יומי</span>`}</div>
+    </div>
+    <div class="stat-card" style="${ms>=(s.month_pb||0)&&(s.month_pb||0)>0?"border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.04);":""}">
+      <div class="label label-gold">📅 שיא אישי חודשי</div>
+      <div class="num-md" style="color:var(--gold2);margin-top:5px;">₪${fmt(s.month_pb||ms||0)}</div>
+      <div style="margin-top:5px;">${ms>0&&ms>=(s.month_pb||0)?`<span class="badge badge-gold">🏆 שיא חודשי!</span>`:`<span style="font-size:10px;color:var(--text-dim);">שיא חודשי</span>`}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label" style="color:rgba(251,146,60,0.7);">🔥 רצף ימים</div>
+      <div class="num-md" style="color:#fb923c;margin-top:5px;">${streak} ימים</div>
+      <div style="margin-top:5px;">${streak>=7?`<span class="badge" style="background:rgba(251,146,60,0.12);color:#fb923c;border:1px solid rgba(251,146,60,0.25);">🔥 בוערים!</span>`:streak>=3?`<span style="font-size:10px;color:var(--text-dim);">💪 ממשיכים!</span>`:`<span style="font-size:10px;color:var(--text-dim);">נבנה רצף</span>`}</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(${paceStatus?"74,222,128":"248,113,113"},0.3);background:rgba(${paceStatus?"74,222,128":"248,113,113"},0.04);">
+      <div class="label" style="color:rgba(${paceStatus?"74,222,128":"248,113,113"},0.7);">🎯 נדרש/יום</div>
+      <div class="num-md" style="color:var(--${paceStatus?"green":"red"});margin-top:5px;">₪${fmt(dailyAvgNeeded)}</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">${daysLeft} ימים נותרים</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(${paceStatus?"74,222,128":"248,113,113"},0.35);background:rgba(${paceStatus?"74,222,128":"248,113,113"},0.06);">
+      <div class="label" style="color:rgba(${paceStatus?"74,222,128":"248,113,113"},0.8);">${paceStatus?"🚀 בדרך לירח!":"⬆️ להרים קצב"}</div>
+      <div style="font-size:14px;font-weight:800;color:var(--${paceStatus?"green":"red"});margin-top:5px;">${paceStatus?"קדימה לירח! 🚀":"נאיץ קצת ⬆️"}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--${paceStatus?"green":"red"});margin-top:4px;">${paceStatus?`+₪${fmt(dailyAvgActual-dailyAvgNeeded)}`:`-₪${fmt(Math.max(0,dailyAvgNeeded-dailyAvgActual))}`}</div>
+    </div>
+  </div>
+
+  <!-- TIERS -->
+  <div class="card" style="border-color:rgba(74,222,128,0.12);">
+    <div style="margin-bottom:12px;"><div class="label label-green">פירוט שכבות עמלה</div><div style="font-size:10px;color:var(--text-dim);margin-top:3px;">עמלה רטרואקטיבית</div></div>
+    ${getTierInfo(ms,cfg.tiers).map(t=>`
+    <div class="tier-row ${t.isActive?"active":""}">
+      <div class="tier-dot" style="background:${t.isActive?"var(--green)":"rgba(255,255,255,0.12)"};${t.isActive?"box-shadow:0 0 8px rgba(74,222,128,0.8);":""}"></div>
+      <div style="flex:1;font-size:12px;color:${t.isActive?"var(--text)":"var(--text-dim)"};">
+        ₪${fmt(t.from)} – ${t.to!==null?"₪"+fmt(t.to):"∞"}
+        <span style="font-weight:900;font-size:13px;margin-right:8px;color:${t.isActive?"var(--green)":"var(--text-dim)"};">${t.pct}%</span>
+        ${t.isActive?`<span class="badge badge-green">פעיל ✓</span>`:""}
+      </div>
+      <div style="font-size:12px;font-weight:800;color:${t.isActive?"var(--green)":"var(--text-dim)"};">${t.isActive?"+₪"+fmt(t.wouldEarn):"₪"+fmt(t.wouldEarn)}</div>
+    </div>`).join("")}
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="label label-green">סה"כ עמלה</div>
+      <div style="font-size:18px;font-weight:900;color:var(--green);">₪${fmt(comm)}</div>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:10px;color:var(--text-dim);padding-bottom:8px;">נובה · ${new Date().toLocaleDateString('he-IL')} · ${p.full_name}</div>
+  ${APP.showCancelModal?renderCancelModal():''}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// ACTIONS
+// ════════════════════════════════════════════════════════════
+window.nextQuote=()=>{
+  APP.quoteIdx=(APP.quoteIdx+1)%QUOTES.length;
+  const el=document.getElementById("quote-block");
+  if(el){el.style.transition="opacity .35s";el.style.opacity="0";setTimeout(()=>render(),360);}else render();
+};
+
+window.doUpdateSales=async()=>{
+  const el=document.getElementById('sale-input');
+  const newTotal=parseFloat(el?el.value:'');
+  if(isNaN(newTotal)||newTotal<0)return;
+  const s=APP.salesData;
+  const prev=s.today_sales||0, diff=newTotal-prev;
+  const newMonth=Math.max(0,(s.month_sales||0)+diff);
+  const newPb=newTotal>=(s.pb||0)?newTotal:(s.pb||0);
+  const newStreak=(prev===0&&newTotal>0)?(s.streak||0)+1:(s.streak||0);
+  const newMonthPb=newMonth>=(s.month_pb||0)?newMonth:(s.month_pb||0);
+  const updates={today_sales:newTotal,month_sales:newMonth,pb:newPb,month_pb:newMonthPb,streak:newStreak,updated_at:new Date().toISOString()};
+  APP.salesData=await saveSalesData(s.id,updates,s);
+  if(el)el.value='';
+  if(diff>0)celebrateSale();else render();
+};
+
+window.doCancellation=async()=>{
+  const el=document.getElementById('cancel-input');
+  const amount=parseFloat(el?el.value:'');
+  if(isNaN(amount)||amount<=0)return;
+  const s=APP.salesData;
+  const newToday=Math.max(0,(s.today_sales||0)-amount);
+  const newMonth=Math.max(0,(s.month_sales||0)-amount);
+  const newMonthPb=s.month_pb||0;
+  const updates={today_sales:newToday,month_sales:newMonth,month_pb:newMonthPb,updated_at:new Date().toISOString()};
+  APP.salesData=await saveSalesData(s.id,updates,s);
+  if(el)el.value='';
+  APP.showCancelModal=true;
+  render();
+};
+
+window.doQuickAdd=async(v)=>{
+  const s=APP.salesData;
+  const newToday=(s.today_sales||0)+v;
+  const newMonth=(s.month_sales||0)+v;
+  const newPb=newToday>=(s.pb||0)?newToday:(s.pb||0);
+  const updates={today_sales:newToday,month_sales:newMonth,pb:newPb,updated_at:new Date().toISOString()};
+  APP.salesData=await saveSalesData(s.id,updates);
+  celebrateSale();
+};
+
+window.closeCancelModal=()=>{APP.showCancelModal=false;render();};
+
+window.refreshAdmin=async()=>{
+  const [reps,managers]=await Promise.all([loadAllReps(),loadAllManagers()]);
+  APP.allReps=reps;APP.allManagers=managers;render();
+};
+
+window.showAddRep=()=>{APP.showAddRepModal=true;APP.addRepError='';render();};
+window.closeAddRep=(e)=>{if(!e||e.target===e.currentTarget){APP.showAddRepModal=false;render();}};
+
+window.viewRep=async(userId)=>{
+  const [profile,salesData]=await Promise.all([loadProfile(userId),loadSalesDataReadOnly(userId)]);
+  APP.viewingRep={profile,salesData};
+  render();
+};
+window.backToAdmin=()=>{APP.viewingRep=null;render();};
+
+window.editRep=(userId)=>{
+  // Search in both reps and managers lists
+  const rep=APP.allReps.find(r=>r.id===userId)||APP.allManagers.find(m=>m.id===userId)||null;
+  if(!rep){alert('לא נמצא משתמש — נסה לרענן');return;}
+  APP.editingRep=rep;
+  APP.editRepError='';
+  APP.showEditRepModal=true;
+  render();
+};
+window.closeEditRep=(e)=>{
+  if(!e||e.target===e.currentTarget){APP.showEditRepModal=false;APP.editingRep=null;render();}
+};
+window.doEditRep=async(userId)=>{
+  const name=document.getElementById('er-name').value.trim();
+  const roleEl=document.getElementById('er-role');
+  const newRole=roleEl?roleEl.value:'rep';
+  const managerEl=document.getElementById('er-manager');
+  const managerId=managerEl?(managerEl.value||null):null;
+  if(!name){APP.editRepError='שם לא יכול להיות ריק';render();return;}
+  const updates={full_name:name,role:newRole,manager_id:managerId};
+  if(newRole==='rep'){
+    const bonus=+document.getElementById('er-bonus').value||2000;
+    const mt=+document.getElementById('er-mtarget').value||150000;
+    const dt=+document.getElementById('er-dtarget').value||7000;
+    const tiers=[
+      {from:+document.getElementById('et0-from').value||0,to:document.getElementById('et0-to').value?+document.getElementById('et0-to').value:50000,pct:+document.getElementById('et0-pct').value||5},
+      {from:+document.getElementById('et1-from').value||50000,to:document.getElementById('et1-to').value?+document.getElementById('et1-to').value:100000,pct:+document.getElementById('et1-pct').value||8},
+      {from:+document.getElementById('et2-from').value||100000,to:document.getElementById('et2-to').value?+document.getElementById('et2-to').value:null,pct:+document.getElementById('et2-pct').value||12},
+    ];
+    updates.settings={targetBonus:bonus,monthTarget:mt,dailyTarget:dt,tiers};
+  }
+  // Use SECURITY DEFINER function to bypass RLS — returns row count
+  const {data:rowsUpdated,error}=await sb.rpc('admin_update_profile',{
+    p_id:userId,
+    p_full_name:updates.full_name,
+    p_role:updates.role,
+    p_manager_id:updates.manager_id||null,
+    p_settings:updates.settings||null
+  });
+  if(error){
+    console.error('doEditRep RPC error:',error);
+    APP.editRepError='שגיאת שמירה: '+error.message;
+    render();return;
+  }
+  if(!rowsUpdated||rowsUpdated<1){
+    console.warn('doEditRep: 0 rows updated — userId:',userId);
+    APP.editRepError='⚠️ לא עודכן (0 שורות). בדוק שה-SQL הורץ נכון.';
+    render();return;
+  }
+  console.log('doEditRep: updated',rowsUpdated,'row(s) for userId',userId,'→ role:',updates.role);
+  APP.showEditRepModal=false;APP.editingRep=null;
+  const [reps,managers]=await Promise.all([loadAllReps(),loadAllManagers()]);
+  APP.allReps=reps;APP.allManagers=managers;
+  render();
+};
+
+window.deleteRep=async(userId,name)=>{
+  if(!confirm(`למחוק את ${name} מהמערכת?\n\nהמשתמש לא יוכל להתחבר יותר.\nניתן לשחזר בעתיד עם אותו מייל.`))return;
+  // Delete sales data and profile
+  await sb.from('sales').delete().eq('user_id',userId);
+  await sb.from('profiles').delete().eq('id',userId);
+  // Delete from Supabase Auth — frees up the email for future reuse
+  const {error:authDelErr}=await sbAdmin.auth.admin.deleteUser(userId);
+  if(authDelErr){
+    // Non-fatal — profile is already deleted, just warn
+    console.warn('Auth delete warning:',authDelErr.message);
+  }
+  const [reps,managers]=await Promise.all([loadAllReps(),loadAllManagers()]);
+  APP.allReps=reps;APP.allManagers=managers;
+  render();
+};
+
+window.saveWorkDays=async()=>{
+  const total=document.getElementById('wd-total').value;
+  const left=document.getElementById('wd-left').value;
+  await saveAppSetting('work_days_total',total||null);
+  await saveAppSetting('work_days_left',left||null);
+  APP.appSettings=await loadAppSettings();
+  render();
+};
+
+window.resetWorkDays=async()=>{
+  await saveAppSetting('work_days_total',null);
+  await saveAppSetting('work_days_left',null);
+  APP.appSettings=await loadAppSettings();
+  render();
+};
+
+window.doAddRep=async()=>{
+  const name=document.getElementById('ar-name').value.trim();
+  const email=document.getElementById('ar-email').value.trim();
+  const pass=document.getElementById('ar-pass').value;
+  const roleEl=document.getElementById('ar-role');
+  const role=roleEl?roleEl.value:'rep';
+  const managerEl=document.getElementById('ar-manager');
+  const managerId=managerEl?managerEl.value||null:null;
+  if(!name||!email||!pass){APP.addRepError='נא למלא שם, אימייל וסיסמה';render();return;}
+  if(pass.length<6){APP.addRepError='סיסמה חייבת להיות לפחות 6 תווים';render();return;}
+  const btn=document.getElementById('add-rep-btn');
+  if(btn){btn.textContent='יוצר...';btn.disabled=true;}
+
+  const showErr=(msg)=>{APP.addRepError=msg;if(btn){btn.textContent='צור משתמש';btn.disabled=false;}render();};
+
+  try{
+    // Use admin client — does NOT touch the admin's session at all
+    const {data:authData,error:authErr}=await sbAdmin.auth.admin.createUser({
+      email,
+      password:pass,
+      email_confirm:true,  // mark as confirmed — welcome email sent via EmailJS instead
+      user_metadata:{full_name:name}
+    });
+
+    if(authErr){
+      if(authErr.message?.includes('422')||authErr.status===422||authErr.message?.toLowerCase().includes('already')){
+        showErr('המייל כבר קיים במערכת. מחק את המשתמש הישן קודם.');
+      } else {
+        showErr('שגיאת יצירה: '+authErr.message);
+      }
+      return;
+    }
+
+    const userId=authData?.user?.id||null;
+    if(!userId){showErr('שגיאה: לא התקבל ID מ-Supabase.');return;}
+
+    let profileData={id:userId,full_name:name,email,role};
+    if(managerId)profileData.manager_id=managerId;
+    if(role==='rep'){
+      const bonus=+document.getElementById('ar-bonus').value||2000;
+      const mt=+document.getElementById('ar-mtarget').value||150000;
+      const dt=+document.getElementById('ar-dtarget').value||7000;
+      const tiers=[
+        {from:+document.getElementById('t0-from').value||0,to:+document.getElementById('t0-to').value||50000,pct:+document.getElementById('t0-pct').value||5},
+        {from:+document.getElementById('t1-from').value||50000,to:+document.getElementById('t1-to').value||100000,pct:+document.getElementById('t1-pct').value||8},
+        {from:+document.getElementById('t2-from').value||100000,to:document.getElementById('t2-to').value?+document.getElementById('t2-to').value:null,pct:+document.getElementById('t2-pct').value||12},
+      ];
+      profileData.settings={targetBonus:bonus,monthTarget:mt,dailyTarget:dt,tiers};
+    }
+
+    // Try direct upsert first, fallback to RPC
+    const {error:upsertErr}=await sb.from('profiles').upsert(profileData);
+    if(upsertErr){
+      const {error:rpcErr}=await sb.rpc('admin_upsert_profile',{
+        p_id:profileData.id,
+        p_full_name:profileData.full_name,
+        p_email:profileData.email,
+        p_role:profileData.role,
+        p_manager_id:profileData.manager_id||null,
+        p_settings:profileData.settings||null
+      });
+      if(rpcErr){showErr('שגיאה ביצירת פרופיל: '+rpcErr.message);return;}
+    }
+
+    // Success — close modal, reload lists, send welcome email
+    // (EmailJS runs in background — no need to block UI)
+    APP.showAddRepModal=false;
+    APP.addRepError='';
+    const [reps,managers]=await Promise.all([loadAllReps(),loadAllManagers()]);
+    APP.allReps=reps;APP.allManagers=managers;
+    render();
+    sendWelcomeEmail(name,email,pass,role); // runs in background, no await needed
+
+  }catch(e){
+    showErr('שגיאה לא צפויה: '+e.message);
+  }
+};
+
+window.refreshManager=async()=>{
+  APP.allReps=await loadManagerReps(APP.user.id);render();
+};
+
+window.assignManager=async(repId,managerId)=>{
+  const val=managerId||null;
+  const {error}=await sb.from('profiles').update({manager_id:val}).eq('id',repId);
+  if(error){alert('שגיאה בשיוך: '+error.message);return;}
+  // Update locally without full reload for speed
+  APP.allReps=APP.allReps.map(r=>r.id===repId?{...r,manager_id:val}:r);
+  render();
+};
+
+async function sendWelcomeEmail(name,email,pass,role){
+  const roleHeb=role==='manager'?'מנהל מכירות':'נציג מכירות';
+  console.log('📧 Sending welcome email to', email);
+  try{
+    const res=await emailjs.send(
+      EMAILJS_SERVICE,
+      EMAILJS_TEMPLATE,
+      {
+        to_name:    name,
+        to_email:   email,
+        email:      email,
+        user_email: email,
+        user_pass:  pass,
+        user_role:  roleHeb,
+        site_url:   window.location.origin+window.location.pathname,
+      },
+      {publicKey: EMAILJS_KEY}
+    );
+    console.log('✅ Email sent:', res.status, res.text);
+  }catch(e){
+    console.error('❌ EmailJS failed:', e?.text||e?.message||JSON.stringify(e));
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
